@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SORICH SALARY & BORROWING SYSTEM</title>
+<style>
+body { margin:0; font-family:Arial,sans-serif; background:linear-gradient(to bottom,#cceeff,#fff); transition:0.5s;}
+header {text-align:center;font-size:26px;font-weight:bold;color:#0066cc;padding:20px;}
+.time {text-align:center;font-size:14px;color:#333;margin-bottom:20px;}
+.container {width:90%;margin:auto;}
+button {margin:5px;padding:10px 15px;font-size:14px;border:none;border-radius:5px;cursor:pointer;transition:0.3s;}
+button:hover {background:#0066cc;color:#fff;}
+.stat-boxes {display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;}
+.stat-box {flex:1;min-width:120px;background:#f0f8ff;padding:15px;border-radius:8px;text-align:center;font-weight:bold;color:#0066cc;}
+table {width:100%;border-collapse:collapse;margin-bottom:15px;}
+th,td {border:1px solid #0066cc;padding:8px;text-align:center;}
+th {background:#cceeff;}
+input, select {padding:5px;margin:3px;}
+.section {margin-bottom:30px;}
+.overdue {color:red;font-weight:bold;}
+.invoice-modal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;z-index:1000;}
+.invoice-content {background:#fff;padding:20px;width:90%;max-width:600px;border-radius:10px;overflow:auto;max-height:90%;}
+.close-btn {float:right;background:red;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="container">
+  <h2>Login</h2>
+  <label>Username: <input type="text" id="loginUsername"></label>
+  <label>Password: <input type="password" id="loginPassword"></label>
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- MAIN CONTAINER -->
+<div id="mainContainer" class="container" style="display:none;">
+<header>SORICH SALARY & BORROWING SYSTEM</header>
+<div class="time" id="liveTime"></div>
+
+<button onclick="showSection('workers')">Workers</button>
+<button onclick="showSection('borrowing')">Borrowing</button>
+<button onclick="showSection('reports')">Reports</button>
+<button onclick="showSection('settings')">Settings</button>
+
+<div class="stat-boxes">
+  <div class="stat-box" id="pureWaterWorkersCount">Pure Water Workers: 0</div>
+  <div class="stat-box" id="bottledWaterWorkersCount">Bottled Water Workers: 0</div>
+  <div class="stat-box" id="totalBorrowing">Total Borrowing: ₦0</div>
+</div>
+
+<!-- WORKERS MANAGEMENT -->
+<div id="workersSection" class="section">
+  <h2>Add Worker</h2>
+  <label>Name: <input type="text" id="workerName" placeholder="Worker Name"></label>
+  <label>Type: 
+    <select id="workerType">
+      <option value="pure">Pure Water</option>
+      <option value="bottle">Bottled Water</option>
+    </select>
+  </label>
+  <label>Salary Amount: <input type="number" id="workerSalary" value="0"></label>
+  <label>Frequency:
+    <select id="salaryFrequency">
+      <option value="daily">Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="monthly">Monthly</option>
+    </select>
+  </label>
+  <button onclick="addWorker()">Add Worker</button>
+
+  <h3>Workers List</h3>
+  <table id="workersTable">
+    <tr><th>Name</th><th>Type</th><th>Salary</th><th>Frequency</th><th>Borrowed</th><th>Remaining</th><th>Paid</th><th>Delete</th><th>🖨</th></tr>
+  </table>
+</div>
+
+<!-- BORROWING MANAGEMENT -->
+<div id="borrowingSection" class="section" style="display:none;">
+  <h2>Borrowing</h2>
+  <label>Worker Name: <input type="text" id="borrowWorker" placeholder="Type worker name"></label>
+  <label>Amount Borrowed: <input type="number" id="borrowAmount" value="0"></label>
+  <button onclick="addBorrow()">Add Borrow</button>
+
+  <h3>Borrowing History</h3>
+  <table id="borrowTable">
+    <tr><th>Worker</th><th>Amount</th><th>Date</th></tr>
+  </table>
+</div>
+
+<!-- REPORTS SECTION -->
+<div id="reportsSection" class="section" style="display:none;">
+  <h2>Salary & Borrowing Report</h2>
+  <label>Period: 
+    <select id="reportPeriod">
+      <option value="daily">Daily</option>
+      <option value="weekly">Weekly</option>
+      <option value="monthly">Monthly</option>
+    </select>
+  </label>
+  <button onclick="generateReport()">Generate Report</button>
+
+  <h3>Current Salary & Borrowing</h3>
+  <table id="reportTable">
+    <tr><th>Worker</th><th>Type</th><th>Total Salary Paid</th><th>Total Borrowed</th><th>Remaining</th></tr>
+  </table>
+
+  <h3>Salary History</h3>
+  <table id="salaryHistoryTable">
+    <tr><th>Worker</th><th>Type</th><th>Salary Paid</th><th>Borrow Cleared</th><th>Date</th></tr>
+  </table>
+
+  <button onclick="printReport()">Print Report</button>
+</div>
+
+<!-- SETTINGS -->
+<div id="settingsSection" class="section" style="display:none;">
+  <h2>Settings</h2>
+  <label>Old Username: <input type="text" id="oldUsername"></label>
+  <label>New Username: <input type="text" id="newUsername"></label>
+  <label>Old Password: <input type="password" id="oldPassword"></label>
+  <label>New Password: <input type="password" id="newPassword"></label>
+  <label>Confirm New Password: <input type="password" id="confirmNewPassword"></label>
+  <button onclick="changeCredentials()">Update Credentials</button>
+</div>
+
+<!-- INVOICE MODAL -->
+<div class="invoice-modal" id="invoiceModal">
+  <div class="invoice-content" id="invoiceContent">
+    <button class="close-btn" onclick="closeInvoiceModal()">X</button>
+    <div id="invoiceBody"></div>
+    <button onclick="printModalInvoice()">Print</button>
+  </div>
+</div>
+
+<script>
+let workersData = JSON.parse(localStorage.getItem('workersData')) || [];
+let borrowData = JSON.parse(localStorage.getItem('borrowData')) || [];
+let salaryHistory = JSON.parse(localStorage.getItem('salaryHistory')) || [];
+let invoiceNumber = parseInt(localStorage.getItem('invoiceNumber')) || 1;
+let loginCreds = JSON.parse(localStorage.getItem('loginCreds')) || {username:"admin", password:"1234"};
+
+function updateTime(){ document.getElementById('liveTime').innerText=new Date().toLocaleString(); }
+setInterval(updateTime,1000); updateTime();
+
+function login(){
+  const user = document.getElementById('loginUsername').value;
+  const pass = document.getElementById('loginPassword').value;
+  if(user === loginCreds.username && pass === loginCreds.password){
+    document.getElementById('loginPage').style.display='none';
+    document.getElementById('mainContainer').style.display='block';
+    updateWorkersTable();
+    updateBorrowTable();
+    updateStats();
+    updateSalaryHistoryTable();
+  } else alert("Incorrect username or password!");
+}
+
+function changeCredentials(){
+  const oldUser = document.getElementById('oldUsername').value.trim();
+  const newUser = document.getElementById('newUsername').value.trim();
+  const oldPass = document.getElementById('oldPassword').value.trim();
+  const newPass = document.getElementById('newPassword').value.trim();
+  const confirmPass = document.getElementById('confirmNewPassword').value.trim();
+
+  if(oldUser !== loginCreds.username || oldPass !== loginCreds.password){
+    return alert("Old username or password is incorrect!");
+  }
+  if(!newUser || !newPass || !confirmPass){
+    return alert("Enter all new credentials!");
+  }
+  if(newPass !== confirmPass) return alert("New password and confirmation do not match!");
+  loginCreds.username = newUser;
+  loginCreds.password = newPass;
+  localStorage.setItem('loginCreds', JSON.stringify(loginCreds));
+  alert("Credentials updated successfully!");
+}
+
+function showSection(section){
+  document.getElementById('workersSection').style.display = section==='workers' ? 'block':'none';
+  document.getElementById('borrowingSection').style.display = section==='borrowing' ? 'block':'none';
+  document.getElementById('settingsSection').style.display = section==='settings' ? 'block':'none';
+  document.getElementById('reportsSection').style.display = section==='reports' ? 'block':'none';
+}
+
+function addWorker(){
+  const name = document.getElementById('workerName').value.trim();
+  if(!name) return alert("Enter worker name!");
+  if(workersData.find(w=>w.name.toLowerCase()===name.toLowerCase())) return alert("Worker name already exists!");
+  const type = document.getElementById('workerType').value;
+  const salary = parseFloat(document.getElementById('workerSalary').value) || 0;
+  const frequency = document.getElementById('salaryFrequency').value;
+  const worker = {name, type, salary, frequency, borrowed:0, remaining:salary};
+  workersData.push(worker);
+  saveData();
+  updateWorkersTable();
+  updateStats();
+}
+
+function deleteWorker(name){
+  if(!confirm(`Are you sure you want to delete ${name}?`)) return;
+  workersData = workersData.filter(w=>w.name!==name);
+  saveData();
+  updateWorkersTable();
+  updateStats();
+}
+
+function addBorrow(){
+  const name = document.getElementById('borrowWorker').value.trim();
+  const amount = parseFloat(document.getElementById('borrowAmount').value) || 0;
+  const worker = workersData.find(w => w.name===name);
+  if(!worker){ return alert('Worker not found'); }
+  worker.borrowed += amount;
+  worker.remaining -= amount;
+  borrowData.push({worker:name, amount, date:new Date().toLocaleString()});
+  saveData();
+  updateWorkersTable();
+  updateBorrowTable();
+  updateStats();
+}
+
+function paySalary(name){
+  const worker = workersData.find(w=>w.name===name);
+  if(!worker) return;
+  if(!confirm(`Are you sure you want to pay ${worker.name}'s salary?`)) return;
+
+  const dateNow = new Date().toLocaleString();
+
+  // Record salary history
+  salaryHistory.push({
+    worker: worker.name,
+    type: worker.type,
+    salaryPaid: worker.remaining,
+    borrowedCleared: worker.borrowed,
+    date: dateNow
+  });
+
+  // Remove borrow records for this worker
+  borrowData = borrowData.filter(b => b.worker !== worker.name);
+
+  // Generate invoice
+  const html = `<h2>Salary Receipt</h2>
+    <p>Worker: ${worker.name}</p>
+    <p>Salary Paid: ₦${worker.remaining}</p>
+    <p>Borrowing Reset: ₦${worker.borrowed}</p>
+    <p>Date: ${dateNow}</p>
+    <p style="color:green;font-weight:bold;">Salary paid successfully!</p>`;
+  showInvoiceModal(html);
+
+  // Reset worker details
+  worker.remaining = worker.salary;
+  worker.borrowed = 0;
+
+  saveData();
+  updateWorkersTable();
+  updateBorrowTable();
+  updateStats();
+  updateSalaryHistoryTable();
+}
+
+function updateWorkersTable(){
+  const table = document.getElementById('workersTable');
+  while(table.rows.length>1) table.deleteRow(1);
+  workersData.forEach(worker=>{
+    const row = table.insertRow();
+    row.insertCell(0).innerText = worker.name;
+    row.insertCell(1).innerText = worker.type;
+    row.insertCell(2).innerText = worker.salary;
+    row.insertCell(3).innerText = worker.frequency;
+    row.insertCell(4).innerHTML = worker.borrowed > 0 ? `<span class="overdue">${worker.borrowed}</span>` : worker.borrowed;
+    row.insertCell(5).innerText = worker.remaining;
+    row.insertCell(6).innerHTML = `<button onclick="paySalary('${worker.name}')">Paid</button>`;
+    row.insertCell(7).innerHTML = `<button onclick="deleteWorker('${worker.name}')">Delete</button>`;
+    row.insertCell(8).innerHTML = `🖨`;
+  });
+}
+
+function updateBorrowTable(){
+  const table = document.getElementById('borrowTable');
+  while(table.rows.length>1) table.deleteRow(1);
+  borrowData.forEach(b => {
+    const row = table.insertRow();
+    row.insertCell(0).innerText = b.worker;
+    row.insertCell(1).innerText = b.amount;
+    row.insertCell(2).innerText = b.date;
+  });
+}
+
+function updateSalaryHistoryTable(){
+  const table = document.getElementById('salaryHistoryTable');
+  while(table.rows.length>1) table.deleteRow(1);
+  salaryHistory.forEach(record=>{
+    const row = table.insertRow();
+    row.insertCell(0).innerText = record.worker;
+    row.insertCell(1).innerText = record.type;
+    row.insertCell(2).innerText = record.salaryPaid;
+    row.insertCell(3).innerText = record.borrowedCleared;
+    row.insertCell(4).innerText = record.date;
+  });
+}
+
+function updateStats(){
+  document.getElementById('pureWaterWorkersCount').innerText = 'Pure Water Workers: ' + workersData.filter(w=>w.type==='pure').length;
+  document.getElementById('bottledWaterWorkersCount').innerText = 'Bottled Water Workers: ' + workersData.filter(w=>w.type==='bottle').length;
+  let totalBorrowed = workersData.reduce((a,b)=>a+b.borrowed,0);
+  document.getElementById('totalBorrowing').innerHTML = totalBorrowed>0 ? `Total Borrowing: <span class="overdue">₦${totalBorrowed}</span>` : `Total Borrowing: ₦${totalBorrowed}`;
+}
+
+function saveData(){
+  localStorage.setItem('workersData', JSON.stringify(workersData));
+  localStorage.setItem('borrowData', JSON.stringify(borrowData));
+  localStorage.setItem('salaryHistory', JSON.stringify(salaryHistory));
+  localStorage.setItem('invoiceNumber', invoiceNumber);
+}
+
+function generateReport(){
+  const period = document.getElementById('reportPeriod').value;
+  const now = new Date();
+  const reportTable = document.getElementById('reportTable');
+  while(reportTable.rows.length>1) reportTable.deleteRow(1);
+
+  workersData.forEach(worker=>{
+    let totalPaid = worker.salary - worker.remaining;
+    let totalBorrowed = 0;
+    borrowData.forEach(b=>{
+      const bDate = new Date(b.date);
+      if(worker.name===b.worker && isInPeriod(bDate, period, now)){
+        totalBorrowed += b.amount;
+      }
+    });
+    const row = reportTable.insertRow();
+    row.insertCell(0).innerText = worker.name;
+    row.insertCell(1).innerText = worker.type;
+    row.insertCell(2).innerText = totalPaid;
+    row.insertCell(3).innerHTML = totalBorrowed>0 ? `<span class="overdue">${totalBorrowed}</span>` : totalBorrowed;
+    row.insertCell(4).innerText = worker.remaining;
+  });
+
+  updateSalaryHistoryTable();
+}
+
+function isInPeriod(date, period, now){
+  if(period==='daily') return date.toDateString()===now.toDateString();
+  if(period==='weekly'){ const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate()-now.getDay()); return date>=startOfWeek;}
+  if(period==='monthly') return date.getMonth()===now.getMonth() && date.getFullYear()===now.getFullYear();
+  return false;
+}
+
+function printReport(){
+  const content = document.getElementById('reportTable').outerHTML + "<br><br>" + document.getElementById('salaryHistoryTable').outerHTML;
+  const w = window.open('','','width=800,height=600');
+  w.document.write('<h2>Salary & Borrowing Report</h2>');
+  w.document.write(content);
+  w.document.close();
+  w.print();
+}
+
+function showInvoiceModal(html){ document.getElementById('invoiceBody').innerHTML=html; document.getElementById('invoiceModal').style.display='flex'; }
+function closeInvoiceModal(){ document.getElementById('invoiceModal').style.display='none'; }
+function printModalInvoice(){ const content=document.getElementById('invoiceContent').innerHTML; const w=window.open('','','width=600,height=600'); w.document.write(content); w.document.close(); w.print(); }
+
+</script>
+</div>
+</body>
+</html>
