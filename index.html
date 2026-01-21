@@ -71,10 +71,12 @@ input, select {padding:5px;margin:3px;}
   <button onclick="addWorker()">Add Worker</button>
 
   <h3>Workers List</h3>
-  <table id="workersTable">
-    <tr><th>Name</th><th>Type</th><th>Salary</th><th>Frequency</th><th>Borrowed</th><th>Remaining</th><th>Paid</th><th>Delete</th><th>🖨</th></tr>
-  </table>
+<label>Search Worker: <input type="text" id="workerSearch" onkeyup="filterWorkers()" placeholder="Type worker name"></label>
+<table id="workersTable">
+  <tr><th>Name</th><th>Type</th><th>Salary</th><th>Frequency</th><th>Borrowed</th><th>Remaining</th><th>Paid</th><th>Delete</th><th>🖨</th></tr>
+</table>
 </div>
+
 
 <!-- BORROWING MANAGEMENT -->
 <div id="borrowingSection" class="section" style="display:none;">
@@ -84,10 +86,14 @@ input, select {padding:5px;margin:3px;}
   <button onclick="addBorrow()">Add Borrow</button>
 
   <h3>Borrowing History</h3>
+  <!-- SEARCH BAR FOR BORROWING -->
+  <label>Search Borrow: <input type="text" id="borrowSearch" onkeyup="filterBorrowing()" placeholder="Type worker name"></label>
+  
   <table id="borrowTable">
     <tr><th>Worker</th><th>Amount</th><th>Date</th></tr>
   </table>
 </div>
+
 
 <!-- REPORTS SECTION -->
 <div id="reportsSection" class="section" style="display:none;">
@@ -101,10 +107,16 @@ input, select {padding:5px;margin:3px;}
   </label>
   <button onclick="generateReport()">Generate Report</button>
 
-  <h3>Current Salary & Borrowing</h3>
-  <table id="reportTable">
-    <tr><th>Worker</th><th>Type</th><th>Total Salary Paid</th><th>Total Borrowed</th><th>Remaining</th></tr>
-  </table>
+  <h3>Search in Reports</h3>
+<label>Search Worker in Reports: 
+  <input type="text" id="reportSearch" onkeyup="filterReports()" placeholder="Type worker name">
+</label>
+<div id="reportCount" style="margin-bottom:10px;font-weight:bold;color:#0066cc;"></div>
+
+<h3>Current Salary & Borrowing</h3>
+<table id="reportTable">
+  <tr><th>Worker</th><th>Type</th><th>Total Salary Paid</th><th>Total Borrowed</th><th>Remaining</th></tr>
+</table>
 
   <h3>Salary History</h3>
   <table id="salaryHistoryTable">
@@ -228,13 +240,19 @@ function paySalary(name){
   const dateNow = new Date().toLocaleString();
 
   // Record salary history
-  salaryHistory.push({
-    worker: worker.name,
-    type: worker.type,
-    salaryPaid: worker.remaining,
-    borrowedCleared: worker.borrowed,
-    date: dateNow
-  });
+salaryHistory.push({
+  worker: worker.name,
+  type: worker.type,
+  salaryPaid: worker.remaining,
+  borrowedCleared: worker.borrowed,
+  date: dateNow
+});
+
+// Update the Reports search count if someone is being searched
+if(document.getElementById('reportSearch').value.trim() !== ''){
+  filterReports();
+}
+
 
   // Remove borrow records for this worker
   borrowData = borrowData.filter(b => b.worker !== worker.name);
@@ -307,6 +325,26 @@ function updateStats(){
   document.getElementById('totalBorrowing').innerHTML = totalBorrowed>0 ? `Total Borrowing: <span class="overdue">₦${totalBorrowed}</span>` : `Total Borrowing: ₦${totalBorrowed}`;
 }
 
+/* ===== WORKERS SEARCH FUNCTION ===== */
+function filterWorkers(){
+  const search = document.getElementById('workerSearch').value.toLowerCase();
+  const table = document.getElementById('workersTable');
+  for(let i = 1; i < table.rows.length; i++){
+    const name = table.rows[i].cells[0].innerText.toLowerCase();
+    table.rows[i].style.display = name.includes(search) ? '' : 'none';
+  }
+}
+
+/* ===== BORROWING SEARCH FUNCTION ===== */
+function filterBorrowing(){
+  const search = document.getElementById('borrowSearch').value.toLowerCase();
+  const table = document.getElementById('borrowTable');
+  for(let i = 1; i < table.rows.length; i++){
+    const name = table.rows[i].cells[0].innerText.toLowerCase();
+    table.rows[i].style.display = name.includes(search) ? '' : 'none';
+  }
+}
+
 function saveData(){
   localStorage.setItem('workersData', JSON.stringify(workersData));
   localStorage.setItem('borrowData', JSON.stringify(borrowData));
@@ -364,3 +402,4 @@ function printModalInvoice(){ const content=document.getElementById('invoiceCont
 </div>
 </body>
 </html>
+
