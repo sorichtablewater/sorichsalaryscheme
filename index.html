@@ -305,6 +305,22 @@ function updateBorrowTable(){
   });
 }
 
+/* ===== REPORTS SEARCH FUNCTION ===== */
+function filterReports(){
+  const search = document.getElementById('reportSearch').value.toLowerCase();
+  const table = document.getElementById('salaryHistoryTable');
+  let count = 0;
+
+  for(let i = 1; i < table.rows.length; i++){ // skip header row
+    const name = table.rows[i].cells[0].innerText.toLowerCase(); // Worker name is first column
+    const display = name.includes(search) ? '' : 'none';
+    table.rows[i].style.display = display;
+    if(display === '') count++;
+  }
+
+  document.getElementById('reportCount').innerText = search ? `Found ${count} record(s)` : '';
+}
+
 function updateSalaryHistoryTable(){
   const table = document.getElementById('salaryHistoryTable');
   while(table.rows.length>1) table.deleteRow(1);
@@ -402,4 +418,5 @@ function printModalInvoice(){ const content=document.getElementById('invoiceCont
 </div>
 </body>
 </html>
+
 
