@@ -305,18 +305,33 @@ function updateBorrowTable(){
   });
 }
 
-/* ===== REPORTS SEARCH FUNCTION ===== */
+/* ===== REPORTS SEARCH FUNCTION WITH TOTAL SALARY ===== */
 function filterReports(){
   const search = document.getElementById('reportSearch').value.toLowerCase();
   const table = document.getElementById('salaryHistoryTable');
   let count = 0;
+  let totalSalary = 0;
 
   for(let i = 1; i < table.rows.length; i++){ // skip header row
-    const name = table.rows[i].cells[0].innerText.toLowerCase(); // Worker name is first column
+    const name = table.rows[i].cells[0].innerText.toLowerCase(); // Worker name
     const display = name.includes(search) ? '' : 'none';
     table.rows[i].style.display = display;
-    if(display === '') count++;
+    
+    if(display === ''){
+      count++;
+      totalSalary += parseFloat(table.rows[i].cells[2].innerText) || 0; // Add Salary Paid column
+    }
   }
+
+  // Update count and total salary display
+  const reportCountElem = document.getElementById('reportCount');
+  if(search){
+    reportCountElem.innerText = `Found ${count} record(s). Total Salary Paid: ₦${totalSalary}`;
+  } else {
+    reportCountElem.innerText = '';
+  }
+}
+
 
   document.getElementById('reportCount').innerText = search ? `Found ${count} record(s)` : '';
 }
@@ -418,5 +433,6 @@ function printModalInvoice(){ const content=document.getElementById('invoiceCont
 </div>
 </body>
 </html>
+
 
 
