@@ -1059,48 +1059,37 @@ function printInvoice(sale){
 
 // ====== ADD EXPENSE ======
 function addExpense() {
-  const typeEl = document.getElementById('expenseType');
-  const descEl = document.getElementById('expenseDesc');
-  const amountEl = document.getElementById('expenseAmount');
-  const paidToEl = document.getElementById('expensePaidTo');
+  const type = document.getElementById('expenseType').value.trim();
+  const desc = document.getElementById('expenseDesc').value.trim();
+  const amount = parseFloat(document.getElementById('expenseAmount').value);
+  const paidTo = document.getElementById('expensePaidTo').value.trim();
 
-  const type = typeEl.value.trim();
-  const desc = descEl.value.trim();
-  const amount = parseFloat(amountEl.value);
-  const paidTo = paidToEl.value.trim();
-
-  // ONLY TYPE AND AMOUNT ARE REQUIRED.
-  // Description and Paid To may be left empty.
-  if (!type) {
-    alert('Expense Type is blank. Please enter the expense type.');
-    typeEl.focus();
+  // Only Type and Amount are required. Description and Paid To are optional.
+  if (!type && (!Number.isFinite(amount) || amount <= 0)) {
+    alert('Expense is blank. Please enter the Expense Type and Amount.');
+    document.getElementById('expenseType').focus();
     return;
   }
-
-  if (amountEl.value.trim() === '' || isNaN(amount) || amount <= 0) {
-    alert('Expense Amount is blank or invalid. Please enter an amount greater than 0.');
-    amountEl.focus();
+  if (!type) {
+    alert('Expense Type is required.');
+    document.getElementById('expenseType').focus();
+    return;
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    alert('Expense Amount is required and must be greater than ₦0.00.');
+    document.getElementById('expenseAmount').focus();
     return;
   }
 
   const date = new Date().toLocaleString();
-
-  expenseData.push({
-    type,
-    desc: desc || '',
-    amount,
-    paidTo: paidTo || '',
-    date
-  });
-
+  expenseData.push({ type, desc, amount, paidTo, date });
   localStorage.setItem('expenseData', JSON.stringify(expenseData));
   renderExpenses();
 
-  typeEl.value = '';
-  descEl.value = '';
-  amountEl.value = '';
-  paidToEl.value = '';
-  typeEl.focus();
+  document.getElementById('expenseType').value = '';
+  document.getElementById('expenseDesc').value = '';
+  document.getElementById('expenseAmount').value = '';
+  document.getElementById('expensePaidTo').value = '';
 }
 
 // ====== RENDER EXPENSES WITH EDIT + ADD + DELETE ======
@@ -1108,7 +1097,7 @@ function renderExpenses() {
   const table = document.getElementById('expensesTable');
   table.innerHTML = `
     <tr>
-      <th>Type</th><th>Description</th><th>Amount</th><th>Paid To</th><th>Date</th><th>Action</th>
+      <th>S/N</th><th>Type</th><th>Description</th><th>Amount</th><th>Paid To</th><th>Date</th><th>Action</th>
     </tr>`;
 
   let totalExpense = 0;
@@ -1151,29 +1140,28 @@ function renderExpenses() {
 function editExpense(index) {
   const e = expenseData[index];
   if (!e) return;
-  const type = prompt('Edit Expense Type:', e.type || '');
+
+  const type = prompt('Edit Expense Type (required):', e.type || '');
   if (type === null) return;
-  if (!type.trim()) { alert('Expense Type cannot be blank.'); return; }
+  if (!type.trim()) { alert('Expense Type is required.'); return; }
 
-  const desc = prompt('Edit Description:', e.desc || '');
-  if (desc === null) return;
-  if (!desc.trim()) { alert('Expense Description cannot be blank.'); return; }
-
-  const amount = parseFloat(prompt('Edit Amount:', Number(e.amount || 0)));
+  const amount = parseFloat(prompt('Edit Amount (required):', Number(e.amount || 0)));
   if (!Number.isFinite(amount) || amount <= 0) {
-    alert('Expense Amount must be greater than ₦0.00.');
+    alert('Expense Amount is required and must be greater than ₦0.00.');
     return;
   }
 
-  const paidTo = prompt('Edit Paid To:', e.paidTo || '');
+  const desc = prompt('Edit Description (optional):', e.desc || '');
+  if (desc === null) return;
+
+  const paidTo = prompt('Edit Paid To (optional):', e.paidTo || '');
   if (paidTo === null) return;
-  if (!paidTo.trim()) { alert('Paid To cannot be blank.'); return; }
 
   e.type = type.trim();
   e.desc = desc.trim();
   e.amount = amount;
   e.paidTo = paidTo.trim();
-  // IMPORTANT: editing an expense never changes its recorded date.
+
   localStorage.setItem('expenseData', JSON.stringify(expenseData));
   renderExpenses();
 }
@@ -1183,34 +1171,26 @@ function addExpenseToDailyRecord(dailyIndex) {
   if (!d) return;
   if (!Array.isArray(d.expenses)) d.expenses = [];
 
-  const type = prompt('Expense Type:', '');
+  const type = prompt('Expense Type (required):', '');
   if (type === null) return;
   if (!type.trim()) {
-    alert('Expense is blank. Expense Type is required.');
+    alert('Expense Type is required.');
     return;
   }
 
-  const desc = prompt('Expense Description:', '');
-  if (desc === null) return;
-  if (!desc.trim()) {
-    alert('Expense is blank. Description is required.');
-    return;
-  }
-
-  const amountRaw = prompt('Expense Amount:', '');
+  const amountRaw = prompt('Expense Amount (required):', '');
   if (amountRaw === null) return;
   const amount = parseFloat(amountRaw);
   if (!Number.isFinite(amount) || amount <= 0) {
-    alert('Expense is blank. Amount must be greater than ₦0.00.');
+    alert('Expense Amount is required and must be greater than ₦0.00.');
     return;
   }
 
-  const paidTo = prompt('Paid To:', '');
+  const desc = prompt('Expense Description (optional):', '');
+  if (desc === null) return;
+
+  const paidTo = prompt('Paid To (optional):', '');
   if (paidTo === null) return;
-  if (!paidTo.trim()) {
-    alert('Expense is blank. Paid To is required.');
-    return;
-  }
 
   d.expenses.push({
     type: type.trim(),
@@ -1230,29 +1210,27 @@ function editDailyExpense(dailyIndex, expenseIndex) {
   if (!d || !Array.isArray(d.expenses) || !d.expenses[expenseIndex]) return;
   const e = d.expenses[expenseIndex];
 
-  const type = prompt('Edit Expense Type:', e.type || '');
+  const type = prompt('Edit Expense Type (required):', e.type || '');
   if (type === null) return;
-  if (!type.trim()) { alert('Expense Type cannot be blank.'); return; }
+  if (!type.trim()) { alert('Expense Type is required.'); return; }
 
-  const desc = prompt('Edit Description:', e.desc || '');
-  if (desc === null) return;
-  if (!desc.trim()) { alert('Expense Description cannot be blank.'); return; }
-
-  const amount = parseFloat(prompt('Edit Amount:', Number(e.amount || 0)));
+  const amount = parseFloat(prompt('Edit Amount (required):', Number(e.amount || 0)));
   if (!Number.isFinite(amount) || amount <= 0) {
-    alert('Expense Amount must be greater than ₦0.00.');
+    alert('Expense Amount is required and must be greater than ₦0.00.');
     return;
   }
 
-  const paidTo = prompt('Edit Paid To:', e.paidTo || '');
+  const desc = prompt('Edit Description (optional):', e.desc || '');
+  if (desc === null) return;
+
+  const paidTo = prompt('Edit Paid To (optional):', e.paidTo || '');
   if (paidTo === null) return;
-  if (!paidTo.trim()) { alert('Paid To cannot be blank.'); return; }
 
   e.type = type.trim();
   e.desc = desc.trim();
   e.amount = amount;
   e.paidTo = paidTo.trim();
-  // IMPORTANT: the expense remains under the daily record's original date.
+
   recalcDailyRecord(d);
   localStorage.setItem('dailyData', JSON.stringify(dailyData));
   renderDailyRecords();
@@ -2446,25 +2424,6 @@ function printWeeklyStatement() {
 
 let customerData =
 JSON.parse(localStorage.getItem('customerData')) || [];
-
-// Save a new customer immediately when the name is typed.
-// This does NOT wait for Add Sale or End Of Day.
-function saveCustomerFromInput() {
-  const input = document.getElementById('saleCustomer');
-  if (!input) return;
-  const name = input.value.trim();
-  if (!name) return;
-  saveCustomerSuggestion(name);
-  updateCustomerSuggestions();
-}
-
-const saleCustomerInput = document.getElementById('saleCustomer');
-if (saleCustomerInput) {
-  saleCustomerInput.addEventListener('input', saveCustomerFromInput);
-  saleCustomerInput.addEventListener('change', saveCustomerFromInput);
-  saleCustomerInput.addEventListener('blur', saveCustomerFromInput);
-}
-
 
 
 // ==========================================
