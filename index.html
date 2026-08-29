@@ -1059,48 +1059,48 @@ function printInvoice(sale){
 
 // ====== ADD EXPENSE ======
 function addExpense() {
-  const type = document.getElementById('expenseType').value.trim();
-  const desc = document.getElementById('expenseDesc').value.trim();
-  const amount = parseFloat(document.getElementById('expenseAmount').value);
-  const paidTo = document.getElementById('expensePaidTo').value.trim();
+  const typeEl = document.getElementById('expenseType');
+  const descEl = document.getElementById('expenseDesc');
+  const amountEl = document.getElementById('expenseAmount');
+  const paidToEl = document.getElementById('expensePaidTo');
 
-  // HARD VALIDATION: no blank/empty expenses.
-  if (!type && !desc && !Number.isFinite(amount) && !paidTo) {
-    alert('Expense is blank. Please enter the expense details.');
-    document.getElementById('expenseType').focus();
-    return;
-  }
+  const type = typeEl.value.trim();
+  const desc = descEl.value.trim();
+  const amount = parseFloat(amountEl.value);
+  const paidTo = paidToEl.value.trim();
+
+  // ONLY TYPE AND AMOUNT ARE REQUIRED.
+  // Description and Paid To may be left empty.
   if (!type) {
-    alert('Expense Type is required.');
-    document.getElementById('expenseType').focus();
+    alert('Expense Type is blank. Please enter the expense type.');
+    typeEl.focus();
     return;
   }
-  if (!desc) {
-    alert('Expense Description is required.');
-    document.getElementById('expenseDesc').focus();
-    return;
-  }
-  if (!Number.isFinite(amount) || amount <= 0) {
-    alert('Expense Amount is required and must be greater than ₦0.00.');
-    document.getElementById('expenseAmount').focus();
-    return;
-  }
-  if (!paidTo) {
-    alert('Paid To is required.');
-    document.getElementById('expensePaidTo').focus();
+
+  if (amountEl.value.trim() === '' || isNaN(amount) || amount <= 0) {
+    alert('Expense Amount is blank or invalid. Please enter an amount greater than 0.');
+    amountEl.focus();
     return;
   }
 
   const date = new Date().toLocaleString();
 
-  expenseData.push({ type, desc, amount, paidTo, date });
+  expenseData.push({
+    type,
+    desc: desc || '',
+    amount,
+    paidTo: paidTo || '',
+    date
+  });
+
   localStorage.setItem('expenseData', JSON.stringify(expenseData));
   renderExpenses();
 
-  document.getElementById('expenseType').value = '';
-  document.getElementById('expenseDesc').value = '';
-  document.getElementById('expenseAmount').value = '';
-  document.getElementById('expensePaidTo').value = '';
+  typeEl.value = '';
+  descEl.value = '';
+  amountEl.value = '';
+  paidToEl.value = '';
+  typeEl.focus();
 }
 
 // ====== RENDER EXPENSES WITH EDIT + ADD + DELETE ======
@@ -2446,6 +2446,25 @@ function printWeeklyStatement() {
 
 let customerData =
 JSON.parse(localStorage.getItem('customerData')) || [];
+
+// Save a new customer immediately when the name is typed.
+// This does NOT wait for Add Sale or End Of Day.
+function saveCustomerFromInput() {
+  const input = document.getElementById('saleCustomer');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) return;
+  saveCustomerSuggestion(name);
+  updateCustomerSuggestions();
+}
+
+const saleCustomerInput = document.getElementById('saleCustomer');
+if (saleCustomerInput) {
+  saleCustomerInput.addEventListener('input', saveCustomerFromInput);
+  saleCustomerInput.addEventListener('change', saveCustomerFromInput);
+  saleCustomerInput.addEventListener('blur', saveCustomerFromInput);
+}
+
 
 
 // ==========================================
