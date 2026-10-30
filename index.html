@@ -334,6 +334,7 @@ body.dark-mode th {background-color:#003366;}
   <label>Confirm New Password: <input type="password" id="confirmPassword"></label><br>
   <button onclick="changeCredentials()">Update Credentials</button><br><br>
 
+  <button onclick="saveSorichSettings()">Save Settings</button>
   <button onclick="backToDashboard()">Back to Dashboard</button>
 </div>
 <script>
@@ -373,26 +374,73 @@ function updateTime(){ document.getElementById('liveTime').innerText=new Date().
 setInterval(updateTime,1000); updateTime();
 
 // ====== LOGIN ======
-function login(){ 
-  const u=document.getElementById('username').value; 
-  const p=document.getElementById('password').value;
-  if(u===loginCredentials.username && p===loginCredentials.password){ showSection('enterDashboardPage'); } 
-  else alert('Invalid credentials');
+function login(){
+  const usernameField=document.getElementById('username');
+  const passwordField=document.getElementById('password');
+  const u=String(usernameField?.value||'').trim().toLowerCase();
+  const p=String(passwordField?.value||'');
+  let saved=loginCredentials;
+  if(!saved || typeof saved.username!=='string' || typeof saved.password!=='string'){
+    saved={username:'manager',password:'1234'};
+    loginCredentials=saved;
+    localStorage.setItem('loginCredentials',JSON.stringify(saved));
+  }
+  if(u===String(saved.username).trim().toLowerCase() && p===String(saved.password)){
+    showSection('enterDashboardPage');
+    if(passwordField) passwordField.value='';
+  } else {
+    alert('Incorrect username or password. If you have not changed the login details, use username: manager and password: 1234.');
+    passwordField?.focus();
+  }
 }
 function logout(){ location.reload(); }
 function showSection(id){
   ['loginPage','enterDashboardPage','dashboardPage','salesPage','debtorsPage','expensesPage','dailyRecordsPage','chartsPage','customerHistoryPage','settingsPage']
-  .forEach(s=>document.getElementById(s).style.display='none');
-  document.getElementById(id).style.display='block';
-  if(id==='chartsPage') renderChart();
-  if(id==='debtorsPage') renderDebtors();
+  .forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
+  const target=document.getElementById(id);
+  if(!target){alert('Page could not be opened: '+id);return;}
+  target.style.display='block';
+  if(id==='chartsPage' && typeof renderChart==='function') renderChart();
+  if(id==='debtorsPage' && typeof renderDebtors==='function') renderDebtors();
 }
 function backToDashboard(){ showSection('dashboardPage'); }
-function toggleDarkMode(){ document.body.classList.toggle('dark-mode'); }
-function updateBgColor(){ document.body.style.background=document.getElementById('bgColorPicker').value; }
+function loadSorichSettings(){
+  let saved={};
+  try{ saved=JSON.parse(localStorage.getItem('sorichSettings')||'{}')||{}; }catch(e){ saved={}; }
+  const setValue=(id,value)=>{const el=document.getElementById(id);if(el&&value!==undefined&&value!==null)el.value=value;};
+  setValue('managerName',saved.managerName||'');
+  setValue('contact1',saved.contact1||'');
+  setValue('invoiceFooter',saved.invoiceFooter||'Drink It. Love It.');
+  setValue('invoiceCopies',saved.invoiceCopies||4);
+  setValue('bgColorPicker',saved.bgColor||'#cceeff');
+  const dark=document.getElementById('darkModeToggle');
+  if(dark){dark.checked=!!saved.darkMode;document.body.classList.toggle('dark-mode',dark.checked);}
+  if(saved.bgColor)document.body.style.background=saved.bgColor;
+}
+function saveSorichSettings(){
+  const get=id=>document.getElementById(id);
+  const settings={
+    managerName:get('managerName')?.value||'',
+    contact1:get('contact1')?.value||'',
+    invoiceFooter:get('invoiceFooter')?.value||'Drink It. Love It.',
+    invoiceCopies:Math.max(1,parseInt(get('invoiceCopies')?.value,10)||4),
+    bgColor:get('bgColorPicker')?.value||'#cceeff',
+    darkMode:!!get('darkModeToggle')?.checked
+  };
+  localStorage.setItem('sorichSettings',JSON.stringify(settings));
+  document.body.classList.toggle('dark-mode',settings.darkMode);
+  document.body.style.background=settings.bgColor;
+  alert('Settings saved successfully.');
+}
+function toggleDarkMode(){ document.body.classList.toggle('dark-mode'); saveSorichSettingsSilent(); }
+function updateBgColor(){ document.body.style.background=document.getElementById('bgColorPicker').value; saveSorichSettingsSilent(); }
+function saveSorichSettingsSilent(){
+  const get=id=>document.getElementById(id);
+  const settings={managerName:get('managerName')?.value||'',contact1:get('contact1')?.value||'',invoiceFooter:get('invoiceFooter')?.value||'Drink It. Love It.',invoiceCopies:Math.max(1,parseInt(get('invoiceCopies')?.value,10)||4),bgColor:get('bgColorPicker')?.value||'#cceeff',darkMode:!!get('darkModeToggle')?.checked};
+  localStorage.setItem('sorichSettings',JSON.stringify(settings));
+}
 function settingsPage(){ 
   showSection('settingsPage');
-  // Load the saved credentials into the form only as blank fields; never expose the current password.
   ['oldPassword','newUsername','newPassword','confirmPassword'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
 }
 function changeCredentials(){
@@ -1042,7 +1090,8 @@ function clearMonthlyExpenses() {
 function clearDailyExpenses() {
   if (!confirm("Clear today's expenses? This will archive them in daily records.")) return;
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const localToday = new Date();
+   const todayStr = `${localToday.getFullYear()}-${String(localToday.getMonth()+1).padStart(2,'0')}-${String(localToday.getDate()).padStart(2,'0')}`;
 
   // Archive today's expenses along with sales if any
   const todaySales = salesData; // current sales
@@ -1373,11 +1422,9 @@ function endOfDay() {
     alert('There are no current sales or expenses to close. Add records first, or open Daily Records to view previous days.');
     return;
   }
-  if (!confirm("Close the day? Today's sales and expenses will be archived.")) return;
-  const todayStr = new Date().toISOString().split('T')[0];
-  const chosenDate = prompt('Enter the DATE for this record (YYYY-MM-DD):', todayStr);
-  if (!chosenDate) return;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(chosenDate)) { alert('Use YYYY-MM-DD.'); return; }
+  if (!confirm("Do you want to end sales for today?\n\nYES = archive today's sales and expenses in Daily Records and clear the current sales/expenses.\nNO = leave everything unchanged.")) return;
+  const localNow = new Date();
+  const chosenDate = `${localNow.getFullYear()}-${String(localNow.getMonth()+1).padStart(2,'0')}-${String(localNow.getDate()).padStart(2,'0')}`;
 
   // IMPORTANT: the date entered here is the actual date of the debt.
   // If today's work is being closed as yesterday, debt history must show yesterday.
@@ -1969,10 +2016,18 @@ function editSale(index){
 }
 
 // ====== INITIAL LOGIN CREDENTIALS ======
-let loginCredentials = JSON.parse(localStorage.getItem('loginCredentials')) || {
-  username: 'admin',
-  password: 'admin'
-};
+// Recover safely if browser storage contains invalid/legacy login data.
+let loginCredentials;
+try {
+  loginCredentials = JSON.parse(localStorage.getItem('loginCredentials') || 'null');
+} catch (error) {
+  loginCredentials = null;
+}
+if (!loginCredentials || typeof loginCredentials.username !== 'string' || typeof loginCredentials.password !== 'string' || !loginCredentials.username || !loginCredentials.password || (loginCredentials.username === 'admin' && loginCredentials.password === 'admin')) {
+  // Replace the old starter credentials from earlier versions with the current starter login.
+  loginCredentials = { username: 'manager', password: '1234' };
+  localStorage.setItem('loginCredentials', JSON.stringify(loginCredentials));
+}
 
 
 
@@ -2761,16 +2816,24 @@ async function printWeeklyStatement() {
     return;
   }
 
+  const now = new Date();
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = monday.getDay();
+  monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
+  const saturday = new Date(monday);
+  saturday.setDate(monday.getDate() + 5);
+  const toISODate = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+
   const start = prompt(
-    "Enter START date (YYYY-MM-DD):",
-    new Date().toISOString().split('T')[0]
+    "Enter START date (YYYY-MM-DD) for the weekly report:",
+    toISODate(monday)
   );
 
   if (!start) return;
 
   const end = prompt(
-    "Enter END date (YYYY-MM-DD):",
-    new Date().toISOString().split('T')[0]
+    "Enter END date (YYYY-MM-DD) for the weekly report (normally Saturday):",
+    toISODate(saturday)
   );
 
   if (!end) return;
@@ -3288,55 +3351,79 @@ async function existingReportHtmlToPdf(html, filename){
   }
 }
 
-async function sharePdfToWhatsApp(pdfInfo){
-  if(!pdfInfo)return;
+// Open the WhatsApp tab immediately from the button click so Firefox/Chrome
+// is less likely to block it while the PDF is being prepared.
+function prepareWhatsAppTab(){
+  const tab = window.open('about:blank', '_blank');
+  if(tab){
+    try{ tab.document.write('<!doctype html><title>Sorich report</title><p style="font-family:Arial;padding:30px">Preparing your Sorich report PDF… WhatsApp will open shortly.</p>'); tab.document.close(); }catch(e){}
+  }
+  return tab;
+}
+
+async function sharePdfToWhatsApp(pdfInfo, whatsappTab){
+  if(!pdfInfo) { if(whatsappTab) whatsappTab.close(); return; }
   const blob = pdfInfo.doc.output('blob');
   const file = new File([blob], pdfInfo.filename, {type:'application/pdf'});
+  // On browsers that support file sharing, open the native share sheet so the
+  // user can choose WhatsApp and share the PDF as an attachment.
   try{
     if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      if(whatsappTab) whatsappTab.close();
       await navigator.share({title:pdfInfo.filename, text:'SORICH TABLE WATER SYSTEM report', files:[file]});
       return;
     }
   }catch(error){
-    if(error && error.name==='AbortError')return;
+    if(error && error.name==='AbortError') { if(whatsappTab) whatsappTab.close(); return; }
   }
+  // Desktop Firefox usually cannot attach a local file automatically to WhatsApp.
+  // Download it and open WhatsApp Web directly; the user then selects the chat,
+  // attaches the downloaded PDF, and presses Send.
   pdfInfo.doc.save(pdfInfo.filename);
-  const win=window.open('https://wa.me/','_blank');
-  if(!win) alert('The PDF has been downloaded. Open WhatsApp, choose the recipient and attach the PDF.');
-  else alert('The PDF has been downloaded. In WhatsApp, choose the recipient, attach the PDF and send it.');
+  if(whatsappTab){
+    try{ whatsappTab.location.href='https://web.whatsapp.com/'; }
+    catch(e){ window.open('https://web.whatsapp.com/','_blank'); }
+  }else{
+    window.open('https://web.whatsapp.com/','_blank');
+  }
+  alert('Your PDF report has been created and downloaded. WhatsApp is opening now. Select the recipient, attach the downloaded PDF, and press Send. Browsers do not allow a website to attach a local PDF automatically in WhatsApp Web.');
 }
 
 async function shareDailyRecordWhatsApp(index){
   const d=dailyData[index]; if(!d)return;
+  const whatsappTab=prepareWhatsAppTab();
   try{
     const html=await captureExistingPrintHtml(()=>renderDailyRecordInvoice(d));
-    if(!html){alert('The daily record PDF was not created. Please try again.');return;}
+    if(!html){if(whatsappTab)whatsappTab.close();alert('The daily record PDF was not created. Please try again.');return;}
     const pdf=await existingReportHtmlToPdf(html,'SORICH_Daily_Record_'+String(d.date||'record')+'.pdf');
-    await sharePdfToWhatsApp(pdf);
-  }catch(error){console.error(error);alert('Could not create the daily record PDF. Please try again.');}
+    if(pdf) await sharePdfToWhatsApp(pdf,whatsappTab); else if(whatsappTab) whatsappTab.close();
+  }catch(error){if(whatsappTab)whatsappTab.close();console.error(error);alert('Could not create the daily record PDF. Please try again.');}
 }
 
 async function shareWeeklyStatementWhatsApp(){
+  const whatsappTab=prepareWhatsAppTab();
   try{
     const html=await captureExistingPrintHtml(()=>printWeeklyStatement());
-    if(!html){alert('The weekly statement was not created. Please check your dates and try again.');return;}
+    if(!html){if(whatsappTab)whatsappTab.close();alert('The weekly statement was not created. Please check your dates and try again.');return;}
     const pdf=await existingReportHtmlToPdf(html,'SORICH_Weekly_Statement.pdf');
-    await sharePdfToWhatsApp(pdf);
-  }catch(error){console.error(error);alert('Could not create the weekly statement PDF. Please try again.');}
+    if(pdf) await sharePdfToWhatsApp(pdf,whatsappTab); else if(whatsappTab) whatsappTab.close();
+  }catch(error){if(whatsappTab)whatsappTab.close();console.error(error);alert('Could not create the weekly statement PDF. Please try again.');}
 }
 
 async function shareMonthlyStatementWhatsApp(){
+  const whatsappTab=prepareWhatsAppTab();
   try{
     const html=await captureExistingPrintHtml(()=>printMonthlyStatement());
-    if(!html){alert('The monthly statement was not created. Please check your month and year and try again.');return;}
+    if(!html){if(whatsappTab)whatsappTab.close();alert('The monthly statement was not created. Please check your month and year and try again.');return;}
     const pdf=await existingReportHtmlToPdf(html,'SORICH_Monthly_Statement.pdf');
-    await sharePdfToWhatsApp(pdf);
-  }catch(error){console.error(error);alert('Could not create the monthly statement PDF. Please try again.');}
+    if(pdf) await sharePdfToWhatsApp(pdf,whatsappTab); else if(whatsappTab) whatsappTab.close();
+  }catch(error){if(whatsappTab)whatsappTab.close();console.error(error);alert('Could not create the monthly statement PDF. Please try again.');}
 }
 
 function updateDashboard(){renderSalesTable();renderExpenses();renderDebtors();}
 
 // ====== INIT ======
+loadSorichSettings();
 const salesBrand = document.getElementById('salesBrand');
 if (salesBrand) salesBrand.innerHTML = sorichBrandHeader();
 rebuildAllDebts();
