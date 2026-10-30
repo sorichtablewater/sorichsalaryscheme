@@ -56,6 +56,23 @@ body.dark-mode th {background-color:#003366;}
 .invoice-modal {position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;z-index:1000;}
 .invoice-content {background:#fff;padding:20px;width:90%;max-width:600px;border-radius:10px;overflow:auto;max-height:90%;}
 .close-btn {float:right;background:red;color:#fff;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;}
+
+/* Refined calm-water motion: slow, soft and easy on the eyes */
+body::before{animation-duration:42s!important;opacity:.42!important;filter:saturate(.78)!important;}
+body::after{animation-duration:34s!important;opacity:.22!important;}
+body.bg-3d-mountain::before,body.bg-3d-beach::before,body.bg-3d-waterfall::before,body.bg-3d-ocean::before,body.bg-3d-lake::before{animation-duration:38s!important;filter:saturate(.78)!important;}
+body.bg-3d-mountain::after,body.bg-3d-beach::after,body.bg-3d-waterfall::after,body.bg-3d-ocean::after,body.bg-3d-lake::after{animation-duration:32s!important;opacity:.26!important;}
+#sorichRainLayer{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:9990;opacity:0;transition:opacity 1.2s ease;}
+body[class*="bg-3d-"] #sorichRainLayer{opacity:.48;}
+.sorich-rain-drop{position:absolute;top:-18vh;width:1px;height:clamp(28px,5vh,62px);border-radius:99px;background:linear-gradient(to bottom,transparent,rgba(255,255,255,.12),rgba(255,255,255,.72));filter:blur(.25px);animation:sorichRainFall linear infinite;will-change:transform;}
+@keyframes sorichRainFall{from{transform:translate3d(0,-15vh,0)}to{transform:translate3d(-3vw,125vh,0)}}
+#sorichClickFx{position:fixed;inset:0;pointer-events:none;z-index:10000;overflow:hidden;}
+.sorich-click-burst{position:absolute;width:8px;height:8px;border:2px solid rgba(255,255,255,.95);border-radius:50%;transform:translate(-50%,-50%) scale(.2);animation:sorichSplashRing .72s ease-out forwards;box-shadow:0 0 8px rgba(50,177,255,.45);}
+.sorich-click-star{position:absolute;width:5px;height:5px;background:#fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 7px rgba(255,255,255,.95),0 0 14px rgba(55,180,255,.75);animation:sorichStarSpread .72s ease-out forwards;}
+@keyframes sorichSplashRing{0%{opacity:.8;transform:translate(-50%,-50%) scale(.15)}70%{opacity:.48}100%{opacity:0;transform:translate(-50%,-50%) scale(7)}}
+@keyframes sorichStarSpread{0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}20%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.15)}}
+@media(prefers-reduced-motion:reduce){body::before,body::after,.sorich-rain-drop,.sorich-click-burst,.sorich-click-star{animation-duration:.01ms!important;animation-iteration-count:1!important}#sorichRainLayer{opacity:.12!important}}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -351,7 +368,7 @@ body.dark-mode th {background-color:#003366;}
   <h2>Settings</h2>
   <label>Dark Mode: <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()"></label><br>
   <h3>🎨 Choose Your Background Design</h3>
-  <p style="max-width:760px;color:#17608a">Sky blue is the default favourite. Choose one of 5 blended-colour backgrounds or 5 animated water landscapes. Your choice is saved on this device.</p>
+  <p style="max-width:760px;color:#17608a">Sky blue is the default favourite. Choose one of 5 blended-colour backgrounds or 5 animated water landscapes. Your choice is saved on this device. The water motion is softened for comfortable viewing, with a gentle rain effect and a small splash sparkle when you click.</p>
   <label for="backgroundTheme"><strong>Background Style:</strong></label>
   <select id="backgroundTheme" onchange="updateBackgroundTheme()" style="min-width:280px;max-width:95%;padding:10px;border:1px solid #7bc8ed;border-radius:8px;background:#f5fcff;color:#07549b">
     <optgroup label="Blended Colour Backgrounds">
@@ -3363,6 +3380,39 @@ renderExpenses();
 renderDailyRecords();
 updateCustomerSuggestions();
 
+
+
+// Subtle, realistic-style rain and small splash/star feedback for clicks.
+(function initSorichAtmosphere(){
+  if(document.getElementById('sorichRainLayer')) return;
+  const rain=document.createElement('div');rain.id='sorichRainLayer';rain.setAttribute('aria-hidden','true');
+  // Use a restrained number of fine drops so the movement stays comfortable.
+  for(let i=0;i<46;i++){
+    const d=document.createElement('span');d.className='sorich-rain-drop';
+    d.style.left=(Math.random()*104-2)+'%';
+    d.style.animationDuration=(1.7+Math.random()*1.8)+'s';
+    d.style.animationDelay=(-Math.random()*4)+'s';
+    d.style.opacity=(.18+Math.random()*.42).toFixed(2);
+    d.style.height=(28+Math.random()*40)+'px';
+    rain.appendChild(d);
+  }
+  const fx=document.createElement('div');fx.id='sorichClickFx';fx.setAttribute('aria-hidden','true');
+  document.body.append(rain,fx);
+  document.addEventListener('click',function(e){
+    if(e.button!==0) return;
+    const x=e.clientX,y=e.clientY;
+    const ring=document.createElement('span');ring.className='sorich-click-burst';ring.style.left=x+'px';ring.style.top=y+'px';fx.appendChild(ring);
+    for(let i=0;i<6;i++){
+      const star=document.createElement('span');star.className='sorich-click-star';
+      const angle=(Math.PI*2*i/6)+(Math.random()-.5)*.42,dist=15+Math.random()*18;
+      star.style.left=x+'px';star.style.top=y+'px';
+      star.style.setProperty('--dx',(Math.cos(angle)*dist)+'px');star.style.setProperty('--dy',(Math.sin(angle)*dist)+'px');
+      star.style.animationDelay=(Math.random()*.06)+'s';fx.appendChild(star);
+      star.addEventListener('animationend',()=>star.remove(),{once:true});
+    }
+    ring.addEventListener('animationend',()=>ring.remove(),{once:true});
+  },{passive:true});
+})();
 
 </script>
 </body>
