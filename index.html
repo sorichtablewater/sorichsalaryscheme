@@ -2487,6 +2487,12 @@ async function printMonthlyStatement() {
     alert('Pop-up blocked. Allow pop-ups for this website, then click Print Monthly Statement again.');
     return;
   }
+  // Show a preparation message rather than a blank page while the report questions are answered.
+  try {
+    win.document.open();
+    win.document.write('<!doctype html><html><head><meta charset="UTF-8"><title>Sorich Monthly Statement</title></head><body style="font-family:Arial;padding:36px;color:#075985;background:#eaf8ff"><h2>Preparing Monthly Statement…</h2><p>Please answer the report questions in the Sorich window.</p></body></html>');
+    win.document.close();
+  } catch (e) {}
 
   // MONTHLY OPTIONAL DEDUCTIONS — use the same clickable YES/NO design as Weekly Statement.
   const includeSalary = await showMonthlyYesNoDialog(
@@ -2642,6 +2648,7 @@ async function printMonthlyStatement() {
     ? (totalSales / totalQty).toFixed(2)
     : "0.00";
 
+  win.document.open();
   win.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
     buildReportStyles() +
@@ -2858,6 +2865,12 @@ async function printWeeklyStatement() {
     alert('Pop-up blocked. Allow pop-ups for this website, then click Print Weekly Statement again.');
     return;
   }
+  // Show a preparation message rather than a blank page while the report questions are answered.
+  try {
+    win.document.open();
+    win.document.write('<!doctype html><html><head><meta charset="UTF-8"><title>Sorich Weekly Statement</title></head><body style="font-family:Arial;padding:36px;color:#075985;background:#eaf8ff"><h2>Preparing Weekly Statement…</h2><p>Please answer the report questions in the Sorich window.</p></body></html>');
+    win.document.close();
+  } catch (e) {}
 
   // OPTIONAL MATERIAL / PACKING-BAG DEDUCTION FOR PROFIT SHARING
   // The normal weekly net remains unchanged unless the user chooses YES.
@@ -2967,6 +2980,7 @@ async function printWeeklyStatement() {
     ? 'Total Sharing Profit'
     : 'Normal Net Profit';
 
+  win.document.open();
   win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">' + buildReportStyles() + '</head><body>');
 
   for (let i = 0; i < copies; i++) {
@@ -3386,7 +3400,7 @@ async function sharePdfToWhatsApp(pdfInfo, whatsappTab){
   }else{
     window.open('https://web.whatsapp.com/','_blank');
   }
-  alert('Your PDF report has been created and downloaded. WhatsApp is opening now. Select the recipient, attach the downloaded PDF, and press Send. Browsers do not allow a website to attach a local PDF automatically in WhatsApp Web.');
+  alert('Your PDF report has been downloaded and WhatsApp is opening. Choose the contact/chat, attach the downloaded PDF using the paperclip (+) button, then press Send. Firefox on Windows does not allow the report to be attached automatically. If your browser offers a share sheet, choose WhatsApp or WhatsApp Beta there to send the PDF through that app.');
 }
 
 async function shareDailyRecordWhatsApp(index){
