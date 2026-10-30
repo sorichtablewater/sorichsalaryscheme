@@ -1369,6 +1369,10 @@ function renderDailyRecordInvoice(d) {
     win.close();
 }
 function endOfDay() {
+  if (!salesData.length && !expenseData.length) {
+    alert('There are no current sales or expenses to close. Add records first, or open Daily Records to view previous days.');
+    return;
+  }
   if (!confirm("Close the day? Today's sales and expenses will be archived.")) return;
   const todayStr = new Date().toISOString().split('T')[0];
   const chosenDate = prompt('Enter the DATE for this record (YYYY-MM-DD):', todayStr);
@@ -1418,7 +1422,9 @@ function endOfDay() {
   rebuildAllDebts();
   localStorage.setItem('salesData','[]'); localStorage.setItem('expenseData','[]');
   renderSalesTable(); renderExpenses(); renderDebtors(); renderDailyRecords();
-  alert('End of day completed! Record saved under ' + chosenDate + '.');
+  showSection('dailyRecordsPage');
+  renderDailyRecords();
+  alert('End of day completed! Record saved under ' + chosenDate + '. You can now see it in Daily Records.');
 }
 
 // ==========================================
@@ -2419,6 +2425,14 @@ async function printMonthlyStatement() {
     return;
   }
 
+  // Open the print window while the original button click is still active.
+  // Browsers block window.open() when it is first called after an awaited dialog.
+  const win = window.open('', '', 'width=1100,height=900');
+  if (!win) {
+    alert('Pop-up blocked. Allow pop-ups for this website, then click Print Monthly Statement again.');
+    return;
+  }
+
   // MONTHLY OPTIONAL DEDUCTIONS — use the same clickable YES/NO design as Weekly Statement.
   const includeSalary = await showMonthlyYesNoDialog(
     '👷',
@@ -2429,10 +2443,11 @@ async function printMonthlyStatement() {
   let monthlySalary = 0;
   if (includeSalary) {
     const salaryInput = prompt('Enter TOTAL SALARY FOR WORKERS for this month:', '');
-    if (salaryInput === null) return;
+    if (salaryInput === null) { win.close(); return; }
     monthlySalary = Number(String(salaryInput).replace(/[^0-9.-]/g, ''));
     if (!Number.isFinite(monthlySalary) || monthlySalary < 0) {
       alert('Please enter a valid salary amount.');
+      win.close();
       return;
     }
   }
@@ -2446,10 +2461,11 @@ async function printMonthlyStatement() {
   let monthlyMaterial = 0;
   if (includeMaterial) {
     const materialInput = prompt('Enter TOTAL MATERIAL BOUGHT for this month:', '');
-    if (materialInput === null) return;
+    if (materialInput === null) { win.close(); return; }
     monthlyMaterial = Number(String(materialInput).replace(/[^0-9.-]/g, ''));
     if (!Number.isFinite(monthlyMaterial) || monthlyMaterial < 0) {
       alert('Please enter a valid material amount.');
+      win.close();
       return;
     }
   }
@@ -2570,12 +2586,6 @@ async function printMonthlyStatement() {
   const avgUnitPrice = totalQty
     ? (totalSales / totalQty).toFixed(2)
     : "0.00";
-
-  const win = window.open('', '', 'width=1100,height=900');
-  if (!win) {
-    alert("Pop-up blocked! Allow pop-ups.");
-    return;
-  }
 
   win.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
@@ -2764,6 +2774,10 @@ async function printWeeklyStatement() {
   );
 
   if (!end) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end) || start > end) {
+    alert('Please enter valid dates in YYYY-MM-DD format. The start date must not be after the end date.');
+    return;
+  }
 
   const weekRecords = dailyData.filter(
     d => d.date >= start && d.date <= end
@@ -2771,6 +2785,14 @@ async function printWeeklyStatement() {
 
   if (!weekRecords.length) {
     alert(`No records found between ${start} and ${end}`);
+    return;
+  }
+
+  // Open the print window before the asynchronous YES/NO dialog.
+  // Otherwise browsers may treat the later window.open() as an unwanted popup.
+  const win = window.open('', '', 'width=1100,height=900');
+  if (!win) {
+    alert('Pop-up blocked. Allow pop-ups for this website, then click Print Weekly Statement again.');
     return;
   }
 
@@ -2808,12 +2830,14 @@ async function printWeeklyStatement() {
     );
 
     if (enteredAmount === null) {
+      win.close();
       return;
     }
 
     sharingDeductionAmount = Number(String(enteredAmount).replace(/[^0-9.-]/g, ''));
     if (!Number.isFinite(sharingDeductionAmount) || sharingDeductionAmount < 0) {
       alert('Please enter a valid positive amount.');
+      win.close();
       return;
     }
   }
@@ -2879,13 +2903,6 @@ async function printWeeklyStatement() {
   const sharingProfitLabel = deductMaterialPacking
     ? 'Total Sharing Profit'
     : 'Normal Net Profit';
-
-  const win = window.open('', '', 'width=1100,height=900');
-
-  if (!win) {
-    alert("Pop-up blocked! Allow pop-ups.");
-    return;
-  }
 
   win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">' + buildReportStyles() + '</head><body>');
 
