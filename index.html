@@ -241,9 +241,7 @@ body.dark-mode th {background-color:#003366;}
 <div id="dailyRecordsPage" class="section" style="display:none; position: relative;">
   <h2>Daily Records</h2>
   <button onclick="printMonthlyStatement()">🖨 Print Monthly Statement</button>
- <button onclick="shareMonthlyStatementWhatsApp()">Share Monthly to WhatsApp</button>
  <button onclick="printWeeklyStatement()">🖨 Print Weekly Statement (Mon–Sat)</button>
- <button onclick="shareWeeklyStatementWhatsApp()">Share Weekly to WhatsApp</button>
 
 
   <!-- BACK TO DASHBOARD BUTTON AT TOP-RIGHT -->
@@ -278,7 +276,6 @@ body.dark-mode th {background-color:#003366;}
       <th>Avg Unit Price</th>
       <th>Total Qty</th>
       <th>View</th>
-      <th>Share</th>
       <th>Edit / Add</th>
       <th>Clear</th>
     </tr>
@@ -1171,13 +1168,7 @@ function dailyTableRows(records, table) {
     viewBtn.onclick = () => renderDailyRecordInvoice(d);
     viewCell.appendChild(viewBtn);
 
-    const shareCell=row.insertCell(7);
-    const shareBtn=document.createElement('button');
-    shareBtn.innerText='Share to WhatsApp';
-    shareBtn.onclick=()=>shareDailyRecordWhatsApp(originalIndex);
-    shareCell.appendChild(shareBtn);
-
-    const editCell = row.insertCell(8);
+    const editCell = row.insertCell(7);
     const editBtn = document.createElement('button');
     editBtn.innerText = '✏️ Edit / Add';
     editBtn.style.background = '#0066cc';
@@ -1185,7 +1176,7 @@ function dailyTableRows(records, table) {
     editBtn.onclick = () => editDailyRecord(originalIndex);
     editCell.appendChild(editBtn);
 
-    const clearCell = row.insertCell(9);
+    const clearCell = row.insertCell(8);
     const clearBtn = document.createElement('button');
     clearBtn.innerText = 'Clear';
     clearBtn.onclick = () => {
@@ -1204,7 +1195,7 @@ function renderDailyRecords() {
   const table = document.getElementById('dailyTable');
   table.innerHTML = `<tr>
     <th>Date</th><th>Total Sales</th><th>Total Expenses</th><th>Net Balance</th>
-    <th>Avg Unit Price</th><th>Total Qty</th><th>View</th><th>Share</th><th>Edit / Add</th><th>Clear</th>
+    <th>Avg Unit Price</th><th>Total Qty</th><th>View</th><th>Edit / Add</th><th>Clear</th>
   </tr>`;
   dailyTableRows([...dailyData].sort((a,b) => String(b.date).localeCompare(String(a.date))), table);
 }
@@ -1216,7 +1207,7 @@ function filterDailyRecords() {
   const table = document.getElementById('dailyTable');
   table.innerHTML = `<tr>
     <th>Date</th><th>Total Sales</th><th>Total Expenses</th><th>Net Balance</th>
-    <th>Avg Unit Price</th><th>Total Qty</th><th>View</th><th>Share</th><th>Edit / Add</th><th>Clear</th>
+    <th>Avg Unit Price</th><th>Total Qty</th><th>View</th><th>Edit / Add</th><th>Clear</th>
   </tr>`;
   dailyTableRows(dailyData.filter(d => String(d.date) >= from && String(d.date) <= to)
     .sort((a,b) => String(b.date).localeCompare(String(a.date))), table);
@@ -3293,146 +3284,6 @@ function renderCustomerBuyingHistory(){
     : `ALL CUSTOMER HISTORY | ${filtered.length} sale(s) | Quantity: ${totalQty} | Total sales: ₦${formatMoney(totalAmount)} | Paid at sale: ₦${formatMoney(totalPaid)} | Owing recorded on sales: ₦${formatMoney(totalOwing)}`;
 }
 
-
-// Capture the exact HTML produced by the existing Print functions. This keeps
-// the same report layout, colours, tables, charts, headings and copy design.
-async function captureExistingPrintHtml(renderReport){
-  let capturedHtml = '';
-  const originalOpen = window.open;
-  const fakeWindow = {
-    document: {
-      write: chunk => { capturedHtml += String(chunk || ''); },
-      close: () => {},
-      open: () => { capturedHtml = ''; }
-    },
-    focus: () => {}, print: () => {}, close: () => {}
-  };
-  try {
-    window.open = () => fakeWindow;
-    await renderReport();
-  } finally {
-    window.open = originalOpen;
-  }
-  if (!capturedHtml.trim()) return null;
-  return capturedHtml;
-}
-
-async function existingReportHtmlToPdf(html, filename){
-  if(!window.jspdf || !window.jspdf.jsPDF || !window.html2canvas){
-    alert('PDF export could not load. Please connect to the internet, refresh the website and try again.');
-    return null;
-  }
-  const iframe = document.createElement('iframe');
-  iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:1100px;height:1000px;border:0;';
-  document.body.appendChild(iframe);
-  try{
-    iframe.srcdoc = html;
-    await new Promise((resolve,reject)=>{
-      iframe.onload = resolve;
-      setTimeout(()=>reject(new Error('Report rendering timed out')),15000);
-    });
-    const body = iframe.contentDocument && iframe.contentDocument.body;
-    if(!body) throw new Error('Could not render the report.');
-    await new Promise(resolve=>setTimeout(resolve,350));
-    const canvas = await html2canvas(body, {
-      scale: 1.6,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      windowWidth: 1100,
-      logging: false
-    });
-    const {jsPDF} = window.jspdf;
-    const pdf = new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const pagePixelHeight = Math.floor(canvas.width * pageHeight / pageWidth);
-    let page = 0;
-    for(let y=0; y<canvas.height; y+=pagePixelHeight){
-      if(page>0) pdf.addPage();
-      const sliceHeight = Math.min(pagePixelHeight, canvas.height-y);
-      const slice = document.createElement('canvas');
-      slice.width = canvas.width;
-      slice.height = sliceHeight;
-      slice.getContext('2d').drawImage(canvas,0,y,canvas.width,sliceHeight,0,0,canvas.width,sliceHeight);
-      const image = slice.toDataURL('image/jpeg',0.94);
-      const renderedHeight = sliceHeight * pageWidth / canvas.width;
-      pdf.addImage(image,'JPEG',0,0,pageWidth,renderedHeight,undefined,'FAST');
-      page++;
-    }
-    return {doc:pdf, filename};
-  } finally {
-    iframe.remove();
-  }
-}
-
-// Open the WhatsApp tab immediately from the button click so Firefox/Chrome
-// is less likely to block it while the PDF is being prepared.
-function prepareWhatsAppTab(){
-  const tab = window.open('about:blank', '_blank');
-  if(tab){
-    try{ tab.document.write('<!doctype html><title>Sorich report</title><p style="font-family:Arial;padding:30px">Preparing your Sorich report PDF… WhatsApp will open shortly.</p>'); tab.document.close(); }catch(e){}
-  }
-  return tab;
-}
-
-async function sharePdfToWhatsApp(pdfInfo, whatsappTab){
-  if(!pdfInfo) { if(whatsappTab) whatsappTab.close(); return; }
-  const blob = pdfInfo.doc.output('blob');
-  const file = new File([blob], pdfInfo.filename, {type:'application/pdf'});
-  // On browsers that support file sharing, open the native share sheet so the
-  // user can choose WhatsApp and share the PDF as an attachment.
-  try{
-    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      if(whatsappTab) whatsappTab.close();
-      await navigator.share({title:pdfInfo.filename, text:'SORICH TABLE WATER SYSTEM report', files:[file]});
-      return;
-    }
-  }catch(error){
-    if(error && error.name==='AbortError') { if(whatsappTab) whatsappTab.close(); return; }
-  }
-  // Desktop Firefox usually cannot attach a local file automatically to WhatsApp.
-  // Download it and open WhatsApp Web directly; the user then selects the chat,
-  // attaches the downloaded PDF, and presses Send.
-  pdfInfo.doc.save(pdfInfo.filename);
-  if(whatsappTab){
-    try{ whatsappTab.location.href='https://web.whatsapp.com/'; }
-    catch(e){ window.open('https://web.whatsapp.com/','_blank'); }
-  }else{
-    window.open('https://web.whatsapp.com/','_blank');
-  }
-  alert('Your PDF report has been downloaded and WhatsApp is opening. Choose the contact/chat, attach the downloaded PDF using the paperclip (+) button, then press Send. Firefox on Windows does not allow the report to be attached automatically. If your browser offers a share sheet, choose WhatsApp or WhatsApp Beta there to send the PDF through that app.');
-}
-
-async function shareDailyRecordWhatsApp(index){
-  const d=dailyData[index]; if(!d)return;
-  const whatsappTab=prepareWhatsAppTab();
-  try{
-    const html=await captureExistingPrintHtml(()=>renderDailyRecordInvoice(d));
-    if(!html){if(whatsappTab)whatsappTab.close();alert('The daily record PDF was not created. Please try again.');return;}
-    const pdf=await existingReportHtmlToPdf(html,'SORICH_Daily_Record_'+String(d.date||'record')+'.pdf');
-    if(pdf) await sharePdfToWhatsApp(pdf,whatsappTab); else if(whatsappTab) whatsappTab.close();
-  }catch(error){if(whatsappTab)whatsappTab.close();console.error(error);alert('Could not create the daily record PDF. Please try again.');}
-}
-
-async function shareWeeklyStatementWhatsApp(){
-  const whatsappTab=prepareWhatsAppTab();
-  try{
-    const html=await captureExistingPrintHtml(()=>printWeeklyStatement());
-    if(!html){if(whatsappTab)whatsappTab.close();alert('The weekly statement was not created. Please check your dates and try again.');return;}
-    const pdf=await existingReportHtmlToPdf(html,'SORICH_Weekly_Statement.pdf');
-    if(pdf) await sharePdfToWhatsApp(pdf,whatsappTab); else if(whatsappTab) whatsappTab.close();
-  }catch(error){if(whatsappTab)whatsappTab.close();console.error(error);alert('Could not create the weekly statement PDF. Please try again.');}
-}
-
-async function shareMonthlyStatementWhatsApp(){
-  const whatsappTab=prepareWhatsAppTab();
-  try{
-    const html=await captureExistingPrintHtml(()=>printMonthlyStatement());
-    if(!html){if(whatsappTab)whatsappTab.close();alert('The monthly statement was not created. Please check your month and year and try again.');return;}
-    const pdf=await existingReportHtmlToPdf(html,'SORICH_Monthly_Statement.pdf');
-    if(pdf) await sharePdfToWhatsApp(pdf,whatsappTab); else if(whatsappTab) whatsappTab.close();
-  }catch(error){if(whatsappTab)whatsappTab.close();console.error(error);alert('Could not create the monthly statement PDF. Please try again.');}
-}
 
 function updateDashboard(){renderSalesTable();renderExpenses();renderDebtors();}
 
