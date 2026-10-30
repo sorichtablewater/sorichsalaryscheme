@@ -5,7 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SORICH TABLE WATER SYSTEM</title>
 <style>
-body { margin:0; font-family:Arial,sans-serif; background:linear-gradient(to bottom,#cceeff,#fff); transition:0.5s;}
+body { margin:0; font-family:Arial,sans-serif; background:linear-gradient(135deg,#dff6ff,#8ed8ff,#f7fdff); transition:background 0.8s ease; min-height:100vh; position:relative; isolation:isolate; }
+/* Sorich selectable backgrounds: five blended gradients and five animated water scenes */
+body::before,body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;}
+body::before{opacity:.8;background-size:220% 220%;animation:sorichGradientFlow 18s ease-in-out infinite alternate;}
+body::after{opacity:0;}
+@keyframes sorichGradientFlow{0%{background-position:0% 20%;transform:scale(1)}100%{background-position:100% 80%;transform:scale(1.08)}}
+@keyframes sorichWaterFlow{0%{background-position:0% 100%,100% 0%,0% 0%;transform:translateY(0)}50%{background-position:60% 0%,0% 100%,100% 50%;transform:translateY(-8px)}100%{background-position:100% 100%,100% 0%,0% 0%;transform:translateY(0)}}
+@keyframes sorichRipple{0%{background-position:0 0,0 0;transform:scale(1)}100%{background-position:180px 90px,-130px 70px;transform:scale(1.04)}}
+/* Five soft, mixed-colour designs */
+body.bg-mix-sky::before{background:linear-gradient(125deg,#e8faff,#78d5ff,#ffffff,#b4eaff,#d9f5ff)}
+body.bg-mix-ocean::before{background:linear-gradient(135deg,#d9f7ff,#5ec8f4,#168bd0,#e7fbff,#a7e7ff)}
+body.bg-mix-sunset::before{background:linear-gradient(135deg,#a9e7ff,#fff0d8,#ffc7bc,#d6eaff,#ffffff)}
+body.bg-mix-mint::before{background:linear-gradient(135deg,#dffcff,#b7f0e8,#d9f3ff,#eafff8,#91d9f4)}
+body.bg-mix-lilac::before{background:linear-gradient(135deg,#dff4ff,#dcdcff,#f8f5ff,#a6e6ff,#ffffff)}
+/* Five animated 3D-style water landscapes built from layered CSS gradients */
+body.bg-3d-mountain{background:linear-gradient(#a8e5ff 0%,#e9fbff 47%,#45bde8 48%,#0878bd 100%)}
+body.bg-3d-mountain::before{opacity:1;background:linear-gradient(155deg,transparent 0 31%,#b6d7e7 31.2% 38%,#6fabc5 38.2% 45%,transparent 45.2%),linear-gradient(205deg,transparent 0 27%,#d9f1fa 27.2% 35%,#639bb9 35.2% 44%,transparent 44.2%),linear-gradient(180deg,transparent 0 47%,rgba(13,127,185,.25) 48%,rgba(0,83,150,.55) 100%);background-size:100% 100%;animation:sorichWaterFlow 16s ease-in-out infinite alternate}
+body.bg-3d-mountain::after{opacity:.8;background:repeating-radial-gradient(ellipse at 30% 110%,transparent 0 24px,rgba(255,255,255,.45) 26px 29px,transparent 31px 52px);background-size:100% 100%;animation:sorichRipple 12s linear infinite}
+body.bg-3d-beach{background:linear-gradient(#a6e5ff 0%,#fff0d4 48%,#39c9e8 49%,#087ab7 100%)}
+body.bg-3d-beach::before{opacity:1;background:radial-gradient(circle at 78% 20%,#fff5bf 0 5%,rgba(255,245,191,.3) 5.5% 11%,transparent 11.5%),linear-gradient(170deg,transparent 0 48%,#f9e3b3 49% 53%,#47d2e9 54% 61%,#087ab7 100%);animation:sorichWaterFlow 20s ease-in-out infinite alternate}
+body.bg-3d-beach::after{opacity:.8;background:repeating-radial-gradient(ellipse at 50% 65%,transparent 0 28px,rgba(255,255,255,.58) 30px 33px,transparent 35px 58px);animation:sorichRipple 14s linear infinite}
+body.bg-3d-waterfall{background:linear-gradient(120deg,#b5e9ff,#dffaff 30%,#167eaa 31%,#6ed9ed 56%,#0a619b 100%)}
+body.bg-3d-waterfall::before{opacity:.95;background:linear-gradient(90deg,#3f8ba7 0 13%,transparent 13% 22%,rgba(255,255,255,.85) 22% 27%,rgba(80,211,241,.9) 27% 34%,transparent 34% 47%,rgba(255,255,255,.65) 47% 52%,transparent 52% 76%,#347f9b 76% 100%),linear-gradient(180deg,transparent 0 43%,rgba(255,255,255,.6) 44%,rgba(0,102,160,.7) 100%);filter:blur(2px);animation:sorichWaterFlow 7s linear infinite}
+body.bg-3d-waterfall::after{opacity:.75;background:repeating-radial-gradient(ellipse at 50% 95%,transparent 0 18px,rgba(255,255,255,.6) 20px 23px,transparent 25px 43px);animation:sorichRipple 8s linear infinite}
+body.bg-3d-ocean{background:linear-gradient(#80d8ff,#e5faff 42%,#13a8d4 43%,#005caa)}
+body.bg-3d-ocean::before{opacity:.9;background:radial-gradient(ellipse at 50% 48%,rgba(255,255,255,.95) 0 2%,transparent 18%),repeating-linear-gradient(170deg,transparent 0 35px,rgba(255,255,255,.3) 38px 42px,transparent 45px 75px),linear-gradient(180deg,transparent 35%,rgba(0,105,180,.5));animation:sorichWaterFlow 10s ease-in-out infinite alternate}
+body.bg-3d-ocean::after{opacity:.8;background:repeating-radial-gradient(ellipse at 20% 100%,transparent 0 25px,rgba(255,255,255,.45) 27px 30px,transparent 33px 55px);animation:sorichRipple 11s linear infinite}
+body.bg-3d-lake{background:linear-gradient(#b7edff 0%,#f3fdff 38%,#719db4 39%,#168fbd 54%,#07568e 100%)}
+body.bg-3d-lake::before{opacity:.95;background:linear-gradient(155deg,transparent 0 24%,#6d9eae 24.2% 31%,#b4d7df 31.2% 36%,transparent 36.2%),linear-gradient(205deg,transparent 0 27%,#477f9b 27.2% 35%,#d7f5ff 35.2% 38%,transparent 38.2%),repeating-linear-gradient(180deg,transparent 0 18px,rgba(255,255,255,.2) 20px 22px,transparent 24px 38px);animation:sorichWaterFlow 18s ease-in-out infinite alternate}
+body.bg-3d-lake::after{opacity:.7;background:repeating-radial-gradient(ellipse at 50% 65%,transparent 0 22px,rgba(255,255,255,.45) 24px 26px,transparent 28px 50px);animation:sorichRipple 15s linear infinite}
+body.dark-mode:not([class*="bg-"]){background:#001f3f;color:#fff;}
+body.dark-mode[class*="bg-mix-"]::before{filter:saturate(.8) brightness(.8)}
+body.dark-mode[class*="bg-3d-"]::before{filter:saturate(.85) brightness(.75)}
 header {text-align:center;font-size:26px;font-weight:bold;color:#0066cc;padding:20px;}
 .time {text-align:center;font-size:14px;color:#333;margin-bottom:20px;}
 .container {width:90%;margin:auto;}
@@ -318,7 +350,19 @@ body.dark-mode th {background-color:#003366;}
 <div id="settingsPage" class="section" style="display:none;">
   <h2>Settings</h2>
   <label>Dark Mode: <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()"></label><br>
-  <label>Background Color: <input type="color" id="bgColorPicker" onchange="updateBgColor()"></label><br>
+  <h3>🎨 Choose Your Background Design</h3>
+  <p style="max-width:760px;color:#17608a">Sky blue is the default favourite. Choose one of 5 blended-colour backgrounds or 5 animated water landscapes. Your choice is saved on this device.</p>
+  <label for="backgroundTheme"><strong>Background Style:</strong></label>
+  <select id="backgroundTheme" onchange="updateBackgroundTheme()" style="min-width:280px;max-width:95%;padding:10px;border:1px solid #7bc8ed;border-radius:8px;background:#f5fcff;color:#07549b">
+    <optgroup label="Blended Colour Backgrounds">
+      <option value="mix-sky">1. Sky Blue Blend (Recommended)</option><option value="mix-ocean">2. Ocean Blue Blend</option><option value="mix-sunset">3. Sky and Beach Sunset Blend</option><option value="mix-mint">4. Aqua Mint Blend</option><option value="mix-lilac">5. Sky Blue and Soft Lilac Blend</option>
+    </optgroup>
+    <optgroup label="Animated 3D-Style Water Backgrounds">
+      <option value="3d-mountain">6. Flowing River Between Mountains</option><option value="3d-beach">7. Moving Tropical Beach and Sea</option><option value="3d-waterfall">8. Flowing Waterfall</option><option value="3d-ocean">9. Animated Deep Blue Ocean Waves</option><option value="3d-lake">10. Mountain Lake with Moving Water</option>
+    </optgroup>
+    <option value="custom">Custom Solid Colour</option>
+  </select><br>
+  <label for="bgColorPicker">Custom Colour (used when Custom Solid Colour is selected): <input type="color" id="bgColorPicker" value="#cceeff" onchange="updateBgColor()"></label><br>
   <label>Manager Name: <input type="text" id="managerName"></label><br>
   <label>Contact Phone 1: <input type="text" id="contact1"></label><br>
   <label>Invoice Footer: <input type="text" id="invoiceFooter" value="Drink It. Love It."></label><br>
@@ -401,6 +445,20 @@ function showSection(id){
   if(id==='debtorsPage' && typeof renderDebtors==='function') renderDebtors();
 }
 function backToDashboard(){ showSection('dashboardPage'); }
+const SORICH_BACKGROUND_CLASSES=['bg-mix-sky','bg-mix-ocean','bg-mix-sunset','bg-mix-mint','bg-mix-lilac','bg-3d-mountain','bg-3d-beach','bg-3d-waterfall','bg-3d-ocean','bg-3d-lake'];
+function applySorichBackground(theme,color){
+  const chosen=theme||'mix-sky';
+  document.body.classList.remove(...SORICH_BACKGROUND_CLASSES);
+  if(chosen==='custom'){
+    document.body.style.background=color||'#cceeff';
+    document.body.style.backgroundImage='none';
+  }else{
+    document.body.style.background='';
+    document.body.style.backgroundImage='';
+    document.body.classList.add('bg-'+chosen);
+  }
+  const selector=document.getElementById('backgroundTheme');if(selector)selector.value=chosen;
+}
 function loadSorichSettings(){
   let saved={};
   try{ saved=JSON.parse(localStorage.getItem('sorichSettings')||'{}')||{}; }catch(e){ saved={}; }
@@ -412,29 +470,36 @@ function loadSorichSettings(){
   setValue('bgColorPicker',saved.bgColor||'#cceeff');
   const dark=document.getElementById('darkModeToggle');
   if(dark){dark.checked=!!saved.darkMode;document.body.classList.toggle('dark-mode',dark.checked);}
-  if(saved.bgColor)document.body.style.background=saved.bgColor;
+  applySorichBackground(saved.backgroundTheme||'mix-sky',saved.bgColor||'#cceeff');
+}
+function getSorichSettings(){
+  const get=id=>document.getElementById(id);
+  return {managerName:get('managerName')?.value||'',contact1:get('contact1')?.value||'',invoiceFooter:get('invoiceFooter')?.value||'Drink It. Love It.',invoiceCopies:Math.max(1,parseInt(get('invoiceCopies')?.value,10)||4),bgColor:get('bgColorPicker')?.value||'#cceeff',backgroundTheme:get('backgroundTheme')?.value||'mix-sky',darkMode:!!get('darkModeToggle')?.checked};
 }
 function saveSorichSettings(){
-  const get=id=>document.getElementById(id);
-  const settings={
-    managerName:get('managerName')?.value||'',
-    contact1:get('contact1')?.value||'',
-    invoiceFooter:get('invoiceFooter')?.value||'Drink It. Love It.',
-    invoiceCopies:Math.max(1,parseInt(get('invoiceCopies')?.value,10)||4),
-    bgColor:get('bgColorPicker')?.value||'#cceeff',
-    darkMode:!!get('darkModeToggle')?.checked
-  };
+  const settings=getSorichSettings();
   localStorage.setItem('sorichSettings',JSON.stringify(settings));
   document.body.classList.toggle('dark-mode',settings.darkMode);
-  document.body.style.background=settings.bgColor;
-  alert('Settings saved successfully.');
+  applySorichBackground(settings.backgroundTheme,settings.bgColor);
+  alert('Settings saved successfully. Your background design has been saved.');
 }
 function toggleDarkMode(){ document.body.classList.toggle('dark-mode'); saveSorichSettingsSilent(); }
-function updateBgColor(){ document.body.style.background=document.getElementById('bgColorPicker').value; saveSorichSettingsSilent(); }
+function updateBackgroundTheme(){
+  const settings=getSorichSettings();
+  applySorichBackground(settings.backgroundTheme,settings.bgColor);
+  saveSorichSettingsSilent();
+}
+function updateBgColor(){
+  const selector=document.getElementById('backgroundTheme');
+  if(selector)selector.value='custom';
+  const settings=getSorichSettings();
+  applySorichBackground('custom',settings.bgColor);
+  saveSorichSettingsSilent();
+}
 function saveSorichSettingsSilent(){
-  const get=id=>document.getElementById(id);
-  const settings={managerName:get('managerName')?.value||'',contact1:get('contact1')?.value||'',invoiceFooter:get('invoiceFooter')?.value||'Drink It. Love It.',invoiceCopies:Math.max(1,parseInt(get('invoiceCopies')?.value,10)||4),bgColor:get('bgColorPicker')?.value||'#cceeff',darkMode:!!get('darkModeToggle')?.checked};
+  const settings=getSorichSettings();
   localStorage.setItem('sorichSettings',JSON.stringify(settings));
+  document.body.classList.toggle('dark-mode',settings.darkMode);
 }
 function settingsPage(){ 
   showSection('settingsPage');
