@@ -1237,7 +1237,17 @@ function dailyTableRows(records, table) {
     const originalIndex = dailyData.indexOf(d);
     const totalQty = d.sales.reduce((sum, s) => sum + Number(s.qty || 0), 0);
     const row = table.insertRow();
-    row.insertCell(0).innerText = d.date;
+
+    // Show weekday beside the saved date without changing the stored date.
+    const dateParts = String(d.date || '').split('-').map(Number);
+    let displayDate = d.date || '';
+    if (dateParts.length === 3 && dateParts.every(Number.isFinite)) {
+      const dateObject = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+      const weekday = dateObject.toLocaleDateString('en-GB', { weekday: 'long' });
+      const formattedDate = dateObject.toLocaleDateString('en-GB');
+      displayDate = `${weekday}, ${formattedDate}`;
+    }
+    row.insertCell(0).innerText = displayDate;
     row.insertCell(1).innerText = formatMoney(d.totalSales);
     row.insertCell(2).innerText = formatMoney(d.totalExpenses);
     row.insertCell(3).innerText = formatMoney(d.net);
@@ -1496,29 +1506,32 @@ function endOfDay() {
     return;
   }
 
-  // Let the manager choose the business date instead of forcing today's date.
-  const localNow = new Date();
-  const todayISO = `${localNow.getFullYear()}-${String(localNow.getMonth()+1).padStart(2,'0')}-${String(localNow.getDate()).padStart(2,'0')}`;
-  let chosenDate = prompt(
-    'Enter the date these sales and expenses belong to (YYYY-MM-DD). You can enter a past date:',
-    todayISO
+  const now = new Date();
+  const todayValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const enteredDate = prompt(
+    'Enter the date for the sales you want to end (YYYY-MM-DD):',
+    todayValue
   );
-  if (chosenDate === null) return;
-  chosenDate = String(chosenDate).trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(chosenDate)) {
-    alert('Invalid date. Please use YYYY-MM-DD, for example 2026-10-30. Nothing has been moved.');
-    return;
-  }
-  const dateCheck = new Date(`${chosenDate}T12:00:00`);
-  if (Number.isNaN(dateCheck.getTime()) ||
-      `${dateCheck.getFullYear()}-${String(dateCheck.getMonth()+1).padStart(2,'0')}-${String(dateCheck.getDate()).padStart(2,'0')}` !== chosenDate) {
-    alert('That date does not exist. Nothing has been moved.');
-    return;
-  }
-  if (!confirm(`Do you want to end/close the sales for ${chosenDate}?\n\nYES = save these sales and expenses under ${chosenDate} in Daily Records, then clear the current sales/expenses.\nNO = leave everything unchanged.`)) return;
+  if (enteredDate === null) return;
 
-  // IMPORTANT: the date entered here is the actual date of the debt.
-  // If today's work is being closed as yesterday, debt history must show yesterday.
+  const chosenDate = enteredDate.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(chosenDate)) {
+    alert('Invalid date format. Please enter the date as YYYY-MM-DD, for example 2026-10-31.');
+    return;
+  }
+  const [year, month, day] = chosenDate.split('-').map(Number);
+  const dateCheck = new Date(year, month - 1, day);
+  if (dateCheck.getFullYear() !== year || dateCheck.getMonth() !== month - 1 || dateCheck.getDate() !== day) {
+    alert('That date does not exist. Please enter a valid calendar date.');
+    return;
+  }
+
+  const weekday = dateCheck.toLocaleDateString('en-GB', { weekday: 'long' });
+  if (!confirm(
+    `DO YOU WANT TO END SALES FOR THIS DAY?\n\nDate: ${weekday}, ${dateCheck.toLocaleDateString('en-GB')}\n\nYES = save these sales and expenses under this date in Daily Records and clear the current sales/expenses.\nNO = cancel and leave everything unchanged.`
+  )) return;
+
+  // Update debt-history dates to the date selected for this end-of-day record.
   salesData.forEach(sale => {
     const customerName = String(sale.customer || '').toLowerCase();
     const debt = debtData.find(d => String(d.customer || '').toLowerCase() === customerName);
@@ -1532,37 +1545,50 @@ function endOfDay() {
     }
   });
 
-  // Use the selected date exactly. If a record already exists for that date, merge into it.
+  // Use the entered date exactly. Merge with an existing record for that date.
   let d = dailyData.find(x => x.date === chosenDate);
   if (!d) {
-    d = {date:chosenDate, totalSales:0, totalExpenses:0, net:0, avgUnitPrice:0, sales:[], expenses:[]};
+    d = { date: chosenDate, totalSales: 0, totalExpenses: 0, net: 0, avgUnitPrice: 0, sales: [], expenses: [] };
     dailyData.push(d);
   }
   if (!Array.isArray(d.sales)) d.sales = [];
   if (!Array.isArray(d.expenses)) d.expenses = [];
 
   salesData.forEach(s => d.sales.push({
-    customer:s.customer,
-    qty:Number(s.qty||0),
-    total:Number(s.total||0),
-    unit:Number(s.unit||0),
-    paid:Number(s.paid||0),
-    owing:Number(s.owing||0),
-    debtHistoryId:s.debtHistoryId || null
+    customer: s.customer,
+    qty: Number(s.qty || 0),
+    total: Number(s.total || 0),
+    unit: Number(s.unit || 0),
+    paid: Number(s.paid || 0),
+    owing: Number(s.owing || 0),
+    debtHistoryId: s.debtHistoryId || null
   }));
-  expenseData.forEach(e => d.expenses.push({type:e.type, desc:getExpenseCategory(e), category:getExpenseCategory(e), categoryManual:e.categoryManual === true, amount:Number(e.amount||0), paidTo:e.paidTo}));
-  recalcDailyRecord(d);
+  expenseData.forEach(e => d.expenses.push({
+    type: e.type,
+    desc: getExpenseCategory(e),
+    category: getExpenseCategory(e),
+    categoryManual: e.categoryManual === true,
+    amount: Number(e.amount || 0),
+    paidTo: e.paidTo
+  }));
 
+  recalcDailyRecord(d);
   localStorage.setItem('dailyData', JSON.stringify(dailyData));
   rebuildAllDebts();
   localStorage.setItem('debtData', JSON.stringify(debtData));
-  salesData = []; expenseData = [];
+
+  salesData = [];
+  expenseData = [];
   rebuildAllDebts();
-  localStorage.setItem('salesData','[]'); localStorage.setItem('expenseData','[]');
-  renderSalesTable(); renderExpenses(); renderDebtors(); renderDailyRecords();
+  localStorage.setItem('salesData', '[]');
+  localStorage.setItem('expenseData', '[]');
+  renderSalesTable();
+  renderExpenses();
+  renderDebtors();
+  renderDailyRecords();
   showSection('dailyRecordsPage');
   renderDailyRecords();
-  alert('End of day completed! Record saved under ' + chosenDate + '. You can now see it in Daily Records.');
+  alert(`End of day completed! Record saved under ${weekday}, ${dateCheck.toLocaleDateString('en-GB')}. You can now see it in Daily Records.`);
 }
 
 // ==========================================
@@ -2667,39 +2693,15 @@ async function printMonthlyStatement() {
   const mainProfit = totalNet - monthlySalary - monthlyMaterial;
   const totalExpensesWithSalary = recordedExpenses + monthlySalary;
 
-  // MONTHLY BORROW LEDGER: total borrowed and a separate total for each worker.
-  // The worker's name is taken from the expense form's "Paid To" field.
-  const monthlyBorrowByWorker = {};
-  let totalMonthlyBorrow = 0;
-  monthRecords.forEach(record => {
-    (record.expenses || []).forEach(expense => {
-      if (getExpenseCategory(expense) !== 'Borrow') return;
-      const amount = Math.max(0, Number(expense.amount || 0));
-      if (!amount) return;
-      const workerName = String(expense.paidTo || '').trim() || 'Worker name not entered';
-      const key = workerName.toLocaleLowerCase();
-      if (!monthlyBorrowByWorker[key]) {
-        monthlyBorrowByWorker[key] = { name: workerName, total: 0, entries: [] };
-      }
-      monthlyBorrowByWorker[key].total += amount;
-      monthlyBorrowByWorker[key].entries.push({ date: record.date || '-', amount, details: String(expense.type || expense.desc || 'Borrow').trim() });
-      totalMonthlyBorrow += amount;
-    });
-  });
-  const monthlyBorrowWorkers = Object.values(monthlyBorrowByWorker)
-    .sort((a, b) => a.name.localeCompare(b.name));
-  const monthlyBorrowDetailHtml = monthlyBorrowWorkers.length
-    ? monthlyBorrowWorkers.map(worker => worker.entries.map(entry => `
-        <tr><td>${escapeReportHtml(worker.name)}</td><td>${escapeReportHtml(entry.date)}</td><td>${escapeReportHtml(entry.details)}</td><td>₦${entry.amount.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>
-      `).join('')).join('') + `<tr style="font-weight:bold;background:#d8f2ff"><td colspan="3">TOTAL BORROWED</td><td>₦${totalMonthlyBorrow.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`
-    : '<tr><td colspan="4" style="text-align:center">No borrow/loan expenses were recorded for this month.</td></tr>';
-  const monthlyBorrowWorkerTotalsHtml = monthlyBorrowWorkers.length
-    ? monthlyBorrowWorkers.map(worker => `<tr><td>${escapeReportHtml(worker.name)}</td><td>₦${worker.total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`).join('') + `<tr style="font-weight:bold;background:#d8f2ff"><td>ALL WORKERS — TOTAL</td><td>₦${totalMonthlyBorrow.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`
-    : '<tr><td colspan="2" style="text-align:center">No workers have borrow entries for this month.</td></tr>';
-
-  // LIVE DEBTORS
+  // LIVE DEBTORS AND OVERALL DEBTORS
+  rebuildAllDebts();
   const monthDebtors = {};
   let totalMonthDebt = 0;
+  // Overall outstanding debt across every customer, not only this month's buyers.
+  const overallMonthDebtors = debtData.reduce(
+    (sum, d) => sum + Math.max(0, Number(d.owing || 0)),
+    0
+  );
 
   monthCustomers.forEach(name => {
     const debt = debtData.find(
@@ -2791,6 +2793,14 @@ async function printMonthlyStatement() {
         </div>
 
         <h3>LIVE DEBTORS</h3>
+        <div style="display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;background:#e7f5ff;padding:12px;border:2px solid #087ec4;border-radius:8px;margin-bottom:12px;">
+          <div><strong>TOTAL LIVE DEBTORS:</strong>
+            <span style="color:#0066cc;font-weight:bold;">₦${totalMonthDebt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+          </div>
+          <div><strong>OVERALL DEBTORS:</strong>
+            <span style="color:#dc2626;font-weight:bold;">₦${overallMonthDebtors.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+          </div>
+        </div>
         <table border="1" width="100%" cellpadding="5">
           <tr>
             <th>Customer</th><th>Total Owed</th><th>Total Paid</th><th>Balance</th>
@@ -2814,21 +2824,6 @@ async function printMonthlyStatement() {
             <td>₦${totalMonthDebt.toLocaleString(undefined,{minimumFractionDigits:2})}</td>
           </tr>
         </table>
-
-        <br>
-        <section class="monthly-borrow-ledger" style="margin:18px 0;padding:14px;border:2px solid #0b78b8;border-radius:10px;background:#eefaff;">
-          <h3>👷 MONTHLY WORKERS' BORROW / LOAN RECORD</h3>
-          <p><strong>TOTAL AMOUNT BORROWED THIS MONTH: ₦${totalMonthlyBorrow.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></p>
-          <table border="1" width="100%" cellpadding="5" style="border-collapse:collapse;background:#fff;">
-            <tr><th>Worker Name</th><th>Date</th><th>Borrow Details</th><th>Amount Borrowed</th></tr>
-            ${monthlyBorrowDetailHtml}
-          </table>
-          <h4>Borrow Total by Worker</h4>
-          <table border="1" width="100%" cellpadding="5" style="border-collapse:collapse;background:#fff;">
-            <tr><th>Worker Name</th><th>Total Amount Borrowed</th></tr>
-            ${monthlyBorrowWorkerTotalsHtml}
-          </table>
-        </section>
 
         <br>
         <h3>SALES SUMMARY</h3>
@@ -3077,9 +3072,15 @@ async function printWeeklyStatement() {
     });
   });
 
-  // LIVE DEBTORS
+  // LIVE DEBTORS AND OVERALL DEBTORS
+  rebuildAllDebts();
   const weekDebtors = {};
   let totalWeekDebt = 0;
+  // Overall outstanding debt across every customer, not only this week's buyers.
+  const overallWeekDebtors = debtData.reduce(
+    (sum, d) => sum + Math.max(0, Number(d.owing || 0)),
+    0
+  );
 
   weekCustomers.forEach(name => {
     const debt = debtData.find(
@@ -3141,7 +3142,14 @@ async function printWeeklyStatement() {
     // DEBTORS
     win.document.write(`
       <h3>LIVE DEBTORS</h3>
-
+      <div style="display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;background:#e7f5ff;padding:12px;border:2px solid #087ec4;border-radius:8px;margin-bottom:12px;">
+        <div><strong>TOTAL LIVE DEBTORS:</strong>
+          <span style="color:#0066cc;font-weight:bold;">₦${totalWeekDebt.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+        </div>
+        <div><strong>OVERALL DEBTORS:</strong>
+          <span style="color:#dc2626;font-weight:bold;">₦${overallWeekDebtors.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+        </div>
+      </div>
       <table border="1" width="100%" cellpadding="5">
         <tr>
           <th>Customer</th>
